@@ -1,0 +1,29 @@
+name: Lua 5.1 and static checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+      - name: Native Lua 5.1 parse
+        run: |
+          for file in GuildRecruit735/*.lua; do
+            luac5.1 -p "$file"
+          done
+      - name: Test fixtures
+        run: |
+          lua5.1 tests/test_runtime.lua GuildRecruit735
+          lua5.1 tests/test_runtime.lua GuildRecruit735 en
+      - name: Verify packaging
+        run: |
+          python3 tools/build.py
+          python3 tools/validate.py
