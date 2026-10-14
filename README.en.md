@@ -22,14 +22,15 @@ GuildRecruit735 is an independently written assistant for **manual guild recruit
 
 ![Russian interface, original screenshot from 0.1.4-TEST](docs/screenshots/ui-russian-0.1.4-test.png)
 
-*These are unmodified screenshots of the preceding 0.1.5 English and 0.1.4 Russian test versions, not falsely labelled screenshots of the 1.0.0 build. The 1.0.0 change is release metadata/docs only.*
+*Screenshots: EN — 0.1.5-TEST, RU — 0.1.4-TEST.*
 
 ## Installation
 
-1. Close WoW completely. Optionally back up `GR735DB.lua` and `GR735CharDB.lua` from your `WTF` configuration; **do not delete your WTF folder**.
-2. Extract the installation ZIP to `World of Warcraft/Interface/AddOns/`, producing `Interface/AddOns/GuildRecruit735/GuildRecruit735.toc`.
-3. Open the UI via its minimap icon or `/gr735`; confirm `/gr735 version` reports **`1.0.0 / GR735-20261014-03`**.
-4. Start a manual WHO scan and explicitly select candidates; there is no automatic mass invite.
+1. Download the latest ZIP from [Releases](https://github.com/JustAlex888/GuildRecruit735/releases).
+2. Open the archive and copy the `GuildRecruit735` folder into `World of Warcraft/Interface/AddOns/`.
+3. Start World of Warcraft. Open the addon using its minimap button.
+
+**Done!** To update, simply replace the `GuildRecruit735` folder with the new one from the archive. Your settings will be preserved.
 
 ## Commands
 
