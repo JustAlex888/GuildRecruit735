@@ -1,4 +1,4 @@
-# GuildRecruit735 localization — 1.0.0
+# GuildRecruit735 localization — 1.0.1-TEST
 
 **Target:** WoW Legion 7.3.5 / Interface `70300`, `GetLocale()`. Current UI source language is Russian. English translations are in `GuildRecruit735/Locale.lua`. No external libraries or unrelated add-on source.
 

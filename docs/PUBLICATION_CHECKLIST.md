@@ -1,16 +1,13 @@
-# GuildRecruit735 1.0.0 publication checklist (for future Work)
+# GuildRecruit735 1.0.2 — публикация и ограничения
 
-**Release assembled, NOT PUBLISHED.** The user's instruction is to prepare a package and handoff; only a later explicit command authorizes a GitHub repository, push, tag or Release.
+- [x] Исходная точная база `1.0.2-TEST / GR735-20261014-05 / 3e401fe4be322b626c27ed8df2cfb17807f51a81d818cd16d1b6e9bc87a35620`.
+- [x] Стабильная версия отдельная: `1.0.2 / GR735-20261015-01`, metadata-only upgrade from parent, no reworked behavior.
+- [x] Сохранение уровней пользователь подтвердил в игре на TEST-предшественнике; источники ограничены его сообщением, full game pass не заявлен.
+- [x] Сохранились все SavedVariables, фильтры, шесть шаблонов, 30-дневная блокировка и контролы HC.
+- [x] Известные ограничения и недоказанный runtime-fix CompactRaidFrame честно отражены.
+- [x] MIT original, отобранные старые скриншоты подписаны своими версиями, исходные инженерные данные не для публикации.
+- [ ] Подтвердить native Lua5.1 и результат GitHub Actions на commit релиза.
+- [ ] Подтвердить tag v1.0.2, GitHub Release, скачивание и SHA точного install ZIP.
+- [ ] Будущая полная игровая регрессия на точном stable ZIP, HC, x100, taint.
 
-- [x] Independent MIT Lua source, no third-party addon source or redistributable libraries.
-- [x] MIT license present both at public repo root and inside user-install ZIP.
-- [x] `.toc` / Core / README RU/EN / CHANGELOG / release notes / archive names harmonized as 1.0.0.
-- [x] README, documentation, screenshots with original build labels, and tests prepared.
-- [x] Basic x1 gameplay and English visual evidence from older 0.1.4/0.1.5 user test runs recorded with limitations.
-- [ ] Native Lua 5.1 CI job on GitHub (build environment blocked).
-- [ ] Optional installed 1.0.0 identity check `/gr735 version` and `/reload` of RU/EN setting.
-- [ ] Confirm exact public repo owner/name and user permission to create and publish.
-- [ ] GitHub public repository created or confirmed; push main, verify CI, create tag v1.0.0.
-- [ ] GitHub Release `v1.0.0` created with exact user-install ZIP SHA, bilingual notes and selected screenshots.
-
-Do not publish private project MASTER, extended rules, raw test logs, internal Work handoff, or historical defect screenshots. Do not claim x100/cross-realm support or all-HC game certification.
+Прежний релиз `v1.0.0` и все старые файлы должны остаться неизменными.

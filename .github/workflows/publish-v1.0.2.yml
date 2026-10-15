@@ -1,0 +1,50 @@
+name: Publish GuildRecruit735 1.0.2
+
+# One-time authorized stable release. Never publish a different version automatically.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'GuildRecruit735/Core.lua'
+      - '.github/workflows/publish-v1.0.2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'JustAlex888/GuildRecruit735'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+      - name: Native syntax, Russian/English mock tests and deterministic build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'VERSION = "1.0.2"' GuildRecruit735/Core.lua)" = 1
+          test "$(grep -c 'BUILD = "GR735-20261015-01"' GuildRecruit735/Core.lua)" = 1
+          grep -q '^## Version: 1.0.2$' GuildRecruit735/GuildRecruit735.toc
+          grep -q '^## X-Build: GR735-20261015-01$' GuildRecruit735/GuildRecruit735.toc
+          for file in GuildRecruit735/*.lua; do luac5.1 -p "$file"; done
+          lua5.1 tests/test_runtime.lua GuildRecruit735
+          lua5.1 tests/test_runtime.lua GuildRecruit735 en
+          python3 tools/build.py
+          python3 tools/validate.py
+          echo '98169e720530b7f0efb32148ac5c47e176033767198f5a54d50baa46e3800a9f  dist/GuildRecruit735-1.0.2-GR735-20261015-01.zip' | sha256sum -c -
+          test "$(unzip -Z1 dist/GuildRecruit735-1.0.2-GR735-20261015-01.zip | wc -l)" -eq 10
+      - name: Publish v1.0.2 and attach exact installation ZIP
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create v1.0.2 \
+            dist/GuildRecruit735-1.0.2-GR735-20261015-01.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'GuildRecruit735 1.0.2' \
+            --notes-file docs/RELEASE_NOTES_RU.md

@@ -1,3 +1,12 @@
+# GuildRecruit735 1.0.2 release provenance — 2026-10-15
+
+- Stable version `1.0.2`, build `GR735-20261015-01`, provenance `GR735_20261015_01_FROM_GR735_20261014_05_3e401fe4_RELEASE_1_0_2_METADATA_ONLY`.
+- Direct canonical TEST parent `1.0.2-TEST / GR735-20261014-05`, install SHA-256 `3e401fe4be322b626c27ed8df2cfb17807f51a81d818cd16d1b6e9bc87a35620`, source SHA-256 `07e8fa0b4757854de674fd39dd097a3c23362209f774ca47e19ce4d270bb958c`; original independent implementation, no external donors.
+- Only `GuildRecruit735/Core.lua` version/build constants and `.toc` metadata changed versus exact direct install parent; all 7 remaining Lua files and bundled LICENSE byte-identical. SavedVariables names, schema, filters, templates, HC and WHO unchanged.
+- Previous `v1.0.0` and interim TEST history retained. Stable game execution `NOT_OBSERVED`; user-reported successful narrow level-range check on direct TEST parent.
+
+---
+
 # Provenance / independent implementation
 
 GuildRecruit735 is written from scratch for the user's requested gameplay workflow and WoW API references. It is NOT a fork or redistribution of SuperGuildInvite.
@@ -37,6 +46,14 @@ Exact parent `GuildRecruit735 0.1.3-TEST / GR735-20261013-04`, install SHA `e9d7
 
 Derived solely from our own exact `0.1.4-TEST / GR735-20261014-01` install ZIP (SHA256 `9057be5828d5cfb35aa95893cf19c648bc851df2017caf53f9dd5bc72d4d3c5d`), source SHA256 `4821a8b75040d0a87307e35bf15a07599b0beed8bd4becb236bacec67578cc01`. Independent RU/EN localization table and small UI/text formatting changes; WoW client API and user's existing saved data untouched. No third-party localization data copied. The following stable/public release is a **separate future** build, not a relabel of this untested translation.
 
+## 1.0.1-TEST exact lineage
+
+Own 1.0.0 install baseline SHA-256 `2684688b426d42d9c4bee8bae60ee43642ab429f935733fa6f1a3f0bc6f7f788`, own 1.0.0 source SHA `3d5bf874a10e5d9d163753164ff3b4ef42f15fc6e7b9b8e916f811196463a90e`, build `GR735-20261014-04`, provenance `GR735_20261014_04_FROM_GR735_20261014_03_2684688b_WHO_CONTACT_HIDE_CUSTOM_DROPDOWN`. Scope limited to `Scanner.lua` 30-day exclusion, `UI.lua` removal of shared Blizzard dropdown menus (possible protected-frame taint source), `Core.lua` and `.toc` version/build. No borrowed third-party implementation. This is an internal TEST until game confirmation; published 1.0.0 and its tag/ZIP remain unchanged.
+
 ## 1.0.0 exact release lineage
 
 Own independent source `0.1.5-TEST / GR735-20261014-02` install SHA-256 `fe2c7c4a420a9d38c109544bd48856c438037922db30cff5e00aaf12cb57aef3`, source SHA-256 `c76d77b8bd1827ed106a2d21083219ab365c8cc260de915425b33b9f587a8356`. 1.0.0 build `GR735-20261014-03`, provenance `GR735_20261014_03_FROM_GR735_20261014_02_fe2c7c4a_RELEASE_1_0_0_METADATA_ONLY`. The only runtime code-file change is Core.lua VERSION/BUILD text; .toc release metadata is updated. The original game API textures remain client-supplied; no third-party code, icons, libraries, fonts or samples have been added. Screenshots are clearly labelled with the actual test build on which they were captured.
+
+## 1.0.2-TEST exact lineage
+
+From own 1.0.1-TEST `GR735-20261014-04` install SHA `b3968318ccda97a4825255f99d224a895911b4e33776ee9dfa4b6b0132769b28`, source SHA `1970fb1317a2b21eb94fa880b2a18331f85f3e0960a83957b6a38319f13f8085`; version/build `1.0.2-TEST` / `GR735-20261014-05`, provenance `GR735_20261014_05_FROM_GR735_20261014_04_b3968318_LEVEL_RANGE_AUTOSAVE`. Only `UI.lua` changes level/World-ID field validation and persistence; `Core.lua` and `.toc` metadata only. All six other Lua modules and the bundled MIT LICENSE are byte-identical to the immediate parent; existing GR735DB/GR735CharDB data preserved. This is an unverified private game-test build and is not published to GitHub.

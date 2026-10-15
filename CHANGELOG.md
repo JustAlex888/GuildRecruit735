@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0.2 — GR735-20261015-01 — 2026-10-15 — public stable release
+
+Canonical direct TEST parent `1.0.2-TEST / GR735-20261014-05`, install SHA-256 `3e401fe4be322b626c27ed8df2cfb17807f51a81d818cd16d1b6e9bc87a35620`, source SHA-256 `07e8fa0b4757854de674fd39dd097a3c23362209f774ca47e19ce4d270bb958c`; provenance `GR735_20261015_01_FROM_GR735_20261014_05_3e401fe4_RELEASE_1_0_2_METADATA_ONLY`. This stable release alters `Core.lua` only VERSION/BUILD and `.toc` release metadata; all 7 other gameplay Lua and MIT LICENSE are byte-identical to the exact candidate. Existing SavedVariables and profiles are kept.
+
+The cumulative 1.0.1-TEST and 1.0.2-TEST improvements since public v1.0.0 are: WHO candidate exclusion of attempted contacts for 30 days; independent HC/contact-choice menus mitigating a possible shared Blizzard UIDropDownMenu taint path (not a confirmed in-game root-cause fix); automatic level-range persistence with explicit Save still supported. User reported successfully retesting level-range saving in-game on 1.0.2-TEST; game coverage for exact stable build and full HC/x100/taint scenarios remains limited. Native Lua5.1/fixtures/packaging verification via GitHub Actions before release attachment.
+
+---
+
+## 1.0.2-TEST — GR735-20261014-05 — 2026-10-14 — private level-range fix TEST
+
+Derived **only** from independent own `1.0.1-TEST / GR735-20261014-04` install SHA `b3968318ccda97a4825255f99d224a895911b4e33776ee9dfa4b6b0132769b28`, source SHA `1970fb1317a2b21eb94fa880b2a18331f85f3e0960a83957b6a38319f13f8085`. Provenance `GR735_20261014_05_FROM_GR735_20261014_04_b3968318_LEVEL_RANGE_AUTOSAVE`.
+
+- **UI.lua**: user-reported regression — the level EditBoxes accepted text but silently reverted after closing/reopening preferences unless the separate Save button was clicked. Valid min/max (1..110, min<=max) and HC World ID now persist in the existing character/guild profile on user input, focus loss, Enter, and settings close; explicit Save remains. Invalid/incomplete values do not corrupt SavedVariables. Next manual `SendWho` consumes the saved range (fixture `10-90`). No schema changes.
+- **Core.lua and .toc**: only release test version/build. Scanner.lua 30-day suppression, independent action/HC menus taint mitigation candidate, filters, HC, messages, minimap and all other runtime files remain byte-identical to 1.0.1-TEST.
+- Local RU/EN mocked regression, scoped STATIC and syntax pass; exact 1.0.2-TEST in-game level-persistence recheck and native Lua 5.1 remain pending. Public GitHub v1.0.0 unchanged, 1.0.1-TEST remains historical user rollback.
+
+## 1.0.1-TEST — GR735-20261014-04 — 2026-10-14 — internal TEST candidate
+
+Based strictly on independent `1.0.0 / GR735-20261014-03` install SHA-256 `2684688b426d42d9c4bee8bae60ee43642ab429f935733fa6f1a3f0bc6f7f788`, source SHA `3d5bf874a10e5d9d163753164ff3b4ef42f15fc6e7b9b8e916f811196463a90e`; provenance `GR735_20261014_04_FROM_GR735_20261014_03_2684688b_WHO_CONTACT_HIDE_CUSTOM_DROPDOWN`.
+
+- **Scanner.lua**: 30-day existing per-character/guild attempted-contact history is now checked when accepting WHO results into candidate list. Previously contacted guildless players count under `Исключено` and are not displayed on subsequent scans. Expired or explicitly reset entries can be shown again. No data migration, no change to contact send/cooldown semantics or class/HC filters.
+- **UI.lua**: replace two Blizzard `UIDropDownMenu_*` selectors (HC and contact action modes) with independent original button/list controls. This removes a documented global-dropdown taint pathway associated with `CompactRaidFrame*:Show()` blocks in WoW. BugGrabber shows GuildRecruit735-attributed raid-frame taint in sessions 119 and 163; **specific causal chain is CANDIDATE**, not proven without client taint.log. Removal is `STATIC_VERIFIED_RISK_REDUCTION`, game taint regression **NOT_OBSERVED**.
+- **Core.lua** and `.toc`: 1.0.1-TEST and exact build ID only; all other Lua files remain unchanged. `GR735DB`, `GR735CharDB`, profile format, WHO request limits, Hardcore/world44, message templates, minimap, explicit WHISPER-first and reset remain unchanged.
+- User's two raw BugGrabber files are preserved in `System GPT`; other DBM, WeakAuras, Spammy, GuildControl and other add-on signatures have **no proven relation** to GuildRecruit735 and are not modified.
+- Requires `GAME_TEST_006` to verify contact exclusion, custom selectors, and whether raid-frame action-blocked error recurs in natural group/combat conditions. Do **not** tag or publish a stable GitHub 1.0.1 from static results alone.
+
+
 ## 1.0.0 — GR735-20261014-03 — 2026-10-14
 
 Первая согласованная публичная версия независимого GuildRecruit735 для WoW Legion 7.3.5 / Interface 70300. Release candidate constructed **only** from our exact `0.1.5-TEST / GR735-20261014-02` (SHA-256 `fe2c7c4a420a9d38c109544bd48856c438037922db30cff5e00aaf12cb57aef3`).

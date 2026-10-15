@@ -1,6 +1,6 @@
 # GuildRecruit735 — English
 
-**Version 1.0.0** · **World of Warcraft Legion 7.3.5** · Interface **70300** · **MIT license**
+**Version 1.0.2** · **World of Warcraft Legion 7.3.5** · Interface **70300** · **MIT license**
 
 GuildRecruit735 is an independently written assistant for **manual guild recruitment**. The principal observed target is **Legion Plus / UWoW x1**. This is **not** a fork of SuperGuildInvite and includes no third-party addon code, graphics or libraries.
 
@@ -9,10 +9,11 @@ GuildRecruit735 is an independently written assistant for **manual guild recruit
 ## Features
 
 - Deliberately initiated, bounded `/who` searches; level range, progress counters and a candidate list. **No bulk or automated invitations.**
+- The editable level range now auto-saves valid entries and applies them to the next WHO search.
 - Name and class exclusions. Named filter catalogue shared within the WoW account, enabled separately for each character and guild.
 - Hardcore recruitment options (exclude HC / only HC / all) with conservative handling of unknown status. The initially configured x1 HC World ID is 44.
 - Choose a candidate manually to **invite only**, **whisper then invite**, or **whisper only**. Six editable templates support `{player}`, `{guild}`, `{level}`, `{class}`.
-- Thirty-day *attempted-contact* cooldown, with confirmation before resetting the current character/guild profile's history.
+- Players who were already contacted are omitted from subsequent WHO candidate lists for **30 days**, until expiration or a confirmed history reset.
 - Round minimap button: left-click opens or closes the main UI, right-click opens settings; observed with MinimapButtonBag.
 - Russian/English UI with automatic client-language selection or manual override.
 
@@ -22,7 +23,7 @@ GuildRecruit735 is an independently written assistant for **manual guild recruit
 
 ![Russian interface, original screenshot from 0.1.4-TEST](docs/screenshots/ui-russian-0.1.4-test.png)
 
-*Screenshots: EN — 0.1.5-TEST, RU — 0.1.4-TEST.*
+*Screenshots: EN — 0.1.5-TEST; RU — 0.1.4-TEST (older test builds).*
 
 ## Installation
 
@@ -45,7 +46,7 @@ GuildRecruit735 is an independently written assistant for **manual guild recruit
 
 `GR735DB` and `GR735CharDB` keep the same SavedVariables identities/schema across the addon's own previous versions. Switching UI language never translates or overwrites user-created templates, filter values, character names or race/class strings returned by the client/server.
 
-Pre-release user evidence on x1 supports basic manual WHO, a working minimap launcher and an actually delivered whisper plus invitation. The English UI was shown working on 0.1.5-TEST. **All HC modes, x100/cross-realm correctness, exhaustive WHO behavior and every reload scenario are not comprehensively game-verified.** See [known limitations](docs/KNOWN_LIMITATIONS.en.md).
+Pre-release user evidence on x1 supports basic manual WHO, a working minimap launcher and an actually delivered whisper plus invitation. The English UI was shown working on 0.1.5-TEST. **The user reported a successful level-range recheck with 1.0.2-TEST; the exact repackaged 1.0.2 stable ZIP has not been game-tested independently.** **All HC modes, x100/cross-realm correctness, exhaustive WHO behavior and every reload scenario are not comprehensively game-verified.** See [known limitations](docs/KNOWN_LIMITATIONS.en.md).
 
 ## Credits and license
 

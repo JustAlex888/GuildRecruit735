@@ -157,7 +157,9 @@ function A:OnWhoResult()
                     local person={name=name,guild=guild or "",level=level,
                                   race=race or "?",class=class or "?",
                                   classFile=classFile or "",zone=zone or ""}
-                    if self:FilterHit(person) then
+                    -- A contact attempt is a per-character/guild 30-day exclusion.
+                    -- WHO results must not reintroduce a recently contacted player.
+                    if self:FilterHit(person) or self:RecentContact(person) then
                         s.stats.filtered=s.stats.filtered+1
                     elseif not self:AllowsHC(person) then
                         s.stats.hardcore=s.stats.hardcore+1

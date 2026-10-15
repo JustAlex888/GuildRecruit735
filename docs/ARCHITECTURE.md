@@ -1,7 +1,7 @@
-# Architecture — GuildRecruit735 1.0.0 / GR735-20261014-03
+# Architecture — GuildRecruit735 1.0.2 / GR735-20261015-01
 
 
-Product: GuildRecruit735 **1.0.0** / GR735-20261014-03, original independent MIT-licensed Lua for WoW Legion 7.3.5 (Interface 70300). Direct parent: 0.1.5-TEST / GR735-20261014-02; original 0.1.0 baseline and intervening builds remain historical.
+Product: GuildRecruit735 **1.0.2** / GR735-20261015-01, original independent MIT-licensed Lua for WoW Legion 7.3.5 (Interface 70300). Direct own parent: 1.0.1-TEST / GR735-20261014-04 / install SHA b3968318ccda97a4825255f99d224a895911b4e33776ee9dfa4b6b0132769b28; original 0.1.0 and intervening independent releases historical.
 
 - `Core.lua`: account and per-character SavedVariables; guild-separated profiles; UTF-8 Cyrillic fold; event dispatcher, version commands.
 - `Filters.lua`: global filter catalogue with monotonic IDs; per-character + per-guild `activeFilters` booleans; matching.
@@ -31,7 +31,7 @@ Important operational boundaries:
 - `GR735DB.filters`, `GR735DB.nextFilterId`, `GR735CharDB.profiles`, `activeFilters` and both SavedVariables identities are **unchanged**.
 - New `profile.excludedClasses` is an optional table of classFile tokens (true means excluded) scoped to existing character/guild profiles. No migration/deletion of old entries.
 - Only simple `name` filters are newly creatable in UI. Historical `guild/realm/class` rule records are still displayed/deletable and evaluated by the old engine for backward compatibility.
-- Native 7.3.5 `UIDropDownMenuTemplate` is used for the three HC and action choices; checkbox template for class exclusions.
+- Native 7.3.5 `UIDropDownMenuTemplate` was historically used for HC and action choices in versions through 1.0.0; checkbox template for class exclusions.
 - `Scanner` temporarily removes `WHO_LIST_UPDATE` from a hidden FriendsFrame **only if it was registered**, restores it at completion/abort/timeout, and restores previous `WhoToUI` routing. It does not overwrite Blizzard globals or change the owner's macros.
 - UTF-8 editor counts codepoints for UI, Lua bytes for conservative chat length, validates final substituted text, and does not byte-truncate.
 - Auto-targeted x100 cross-realm filter is **out of scope** until the real server WHO world evidence is observed.
@@ -62,3 +62,15 @@ A separate original `Locale.lua` is loaded directly after Core.lua. Current ruRU
 
 Exact source baseline: independent own `0.1.5-TEST / GR735-20261014-02 / fe2c7c4a420a9d38c109544bd48856c438037922db30cff5e00aaf12cb57aef3`.
 Build `GR735-20261014-03` changes **only** `Core.lua` version/build constants and `.toc` version/build/title; the other seven Lua files are byte-identical. A copy of the existing MIT license is shipped at `GuildRecruit735/LICENSE` in the install ZIP for redistribution completeness. The core behavior, SavedVariables keys, WHO/HC and manual contact actions remain unchanged. Offline fixtures are rerun; the new release version itself has no separate full game test.
+
+## 1.0.1-TEST scoped fixes
+
+- The WHO scanner checks `self:RecentContact(person)` alongside `FilterHit` before adding a candidate; each exclusion contributes to existing `stats.filtered`. This preserves 30-day attempted-contact records in the current character/guild profile with no schema changes.
+- The settings UI now uses two original `UIPanelButtonTemplate` buttons with own menu frames instead of shared Blizzard `UIDropDownMenuTemplate`/`UIDropDownMenu_*`. This addresses a strong, published taint-vector candidate for protected CompactRaidFrames. It is a static risk reduction, NOT an observed runtime fix until GAME_TEST_006.
+- The selected action/HC ID values, persistent settings, translations, 3 choices, and independent menu handling are preserved; no new dependencies.
+
+## 1.0.2-TEST level range auto-save fix
+
+- `UI.lua` EditBoxes for minimum/maximum WHO level and HC World ID already existed with an explicit Save button, but ordinary edits were not committed on window close/reopen. The old `UpdateSettings` repainted the previous stored range. The new `commitSearchPreferences` validates all three controls and records only complete 1..110 integer ranges and positive integer World IDs in the existing `Profile()` fields.
+- User-originated `OnTextChanged` autosaves as soon as a complete valid range is present. `OnEnterPressed`, `OnEditFocusLost` and settings `OnHide` also commit, and the existing Save button retains its feedback behavior. `UpdateSettings` programmatic `SetText` does not count as user input. Invalid values leave the stored profile unchanged.
+- `Scanner.lua` remains byte-identical to 1.0.1-TEST and consumes `profile.minLevel/maxLevel` when starting the NEXT manual `/who` search. No data migration, extra frames/globals or changed controls beyond setting persistence. Mock persistence and exact emitted `10-90` WHO range verified off-game; the exact new ZIP is GAME NOT_OBSERVED.

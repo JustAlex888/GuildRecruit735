@@ -54,19 +54,29 @@ local function fakeFrame(kind,name,parent)
             for _,h in ipairs(self.showHooks or {}) do h(self) end
         end
     end
-    function f:Hide() self.shown=false end
+    function f:Hide()
+        if self.shown then
+            self.shown=false
+            if self.scripts.OnHide then self.scripts.OnHide(self) end
+            for _,h in ipairs(self.hideHooks or {}) do h(self) end
+        end
+    end
     function f:IsShown() return self.shown end
     function f:HookScript(e,callback)
         if e=="OnShow" then
             self.showHooks=self.showHooks or {}
             self.showHooks[#self.showHooks+1]=callback
+        elseif e=="OnHide" then
+            self.hideHooks=self.hideHooks or {}
+            self.hideHooks[#self.hideHooks+1]=callback
         end
     end
     function f:SetScrollChild(o) self.scrollChild=o end
     function f:SetText(s)
         self.text=s or ""
         if self.type=="EditBox" and self.scripts.OnTextChanged then
-            self.scripts.OnTextChanged(self,true)
+            -- WoW SetText() is programmatic; its userInput argument is false.
+            self.scripts.OnTextChanged(self,false)
         end
     end
     function f:GetText() return self.text or "" end
@@ -126,14 +136,15 @@ RAID_CLASS_COLORS={
     DRUID={colorStr="ffff7d0a"},
     HUNTER={r=170/255,g=211/255,b=114/255,colorStr="ffaaD372"}
 }
-UIDropDownMenu_SetWidth=function(frame,w) frame.menuWidth=w end
-UIDropDownMenu_Initialize=function(frame,fn) frame.init=fn end
-UIDropDownMenu_CreateInfo=function() return {} end
-local menuEntries={}
-UIDropDownMenu_AddButton=function(info) menuEntries[#menuEntries+1]=info end
-UIDropDownMenu_SetSelectedValue=function(frame,value) frame.selected=value end
-UIDropDownMenu_SetText=function(frame,text) frame.text=text end
-CloseDropDownMenus=function() end
+-- The fixture fails if code touches global Blizzard dropdown APIs (taint candidate).
+local function forbiddenDropdown() error("Blizzard shared UIDropDownMenu must not be used") end
+UIDropDownMenu_SetWidth=forbiddenDropdown
+UIDropDownMenu_Initialize=forbiddenDropdown
+UIDropDownMenu_CreateInfo=forbiddenDropdown
+UIDropDownMenu_AddButton=forbiddenDropdown
+UIDropDownMenu_SetSelectedValue=forbiddenDropdown
+UIDropDownMenu_SetText=forbiddenDropdown
+CloseDropDownMenus=forbiddenDropdown
 StaticPopupDialogs={}
 SlashCmdList={}
 YES="Да";CANCEL="Отмена"
@@ -241,20 +252,111 @@ ok(A.ui.scanButton:GetText()==A:T("Сканирование"),"scan button in cl
 ok(A.ui.hcDropdown.menuWidth==259,"HC dropdown actual width")
 ok(A.ui.modeDropdown.menuWidth==259,"invite dropdown actual width")
 ok(#UISpecialFrames>=5,"Esc registers windows")
--- Selectors are true legacy dropdowns rather than cycling button labels.
-A.ui.hcDropdown.init(A.ui.hcDropdown,1)
-ok(#menuEntries==3,"HC dropdown has three choices")
-menuEntries[2].func()
-ok(A:Profile().hcMode=="only","HC dropdown selection persists")
-A.ui.hcDropdown.init(A.ui.hcDropdown,1)
-ok(A.ui.hcDropdown.selected=="only","HC dropdown displays selected value")
+-- Private menu controls avoid Blizzard's shared dropdown taint state.
+ok(A.ui.hcDropdown.type=="Button" and A.ui.modeDropdown.type=="Button",
+   "both selectors use private simple buttons, not shared Blizzard dropdowns")
+ok(#A.ui.hcDropdown.choiceButtons==3 and #A.ui.modeDropdown.choiceButtons==3,
+   "both selectors offer the original three choices")
+A.ui.hcDropdown.scripts.OnClick(A.ui.hcDropdown)
+ok(A.ui.hcDropdown.choiceMenu:IsShown(),"HC private menu opens")
+A.ui.modeDropdown.scripts.OnClick(A.ui.modeDropdown)
+ok(not A.ui.hcDropdown.choiceMenu:IsShown() and A.ui.modeDropdown.choiceMenu:IsShown(),
+   "opening the other selector closes the previous menu")
+A.ui.modeDropdown.scripts.OnClick(A.ui.modeDropdown)
+ok(not A.ui.modeDropdown.choiceMenu:IsShown(),"second click closes a private menu")
+A.ui.hcDropdown.scripts.OnClick(A.ui.hcDropdown)
+A.ui.hcDropdown.choiceButtons[2].scripts.OnClick()
+ok(A:Profile().hcMode=="only" and not A.ui.hcDropdown.choiceMenu:IsShown(),
+   "HC private menu selection persists and menu closes")
+ok(A.ui.hcDropdown.selected=="only","HC selector displays selected value")
 A:Profile().hcMode="exclude";A:UpdateSettings()
-menuEntries={}
-A.ui.modeDropdown.init(A.ui.modeDropdown,1)
-ok(#menuEntries==3,"invite dropdown has three choices")
-menuEntries[3].func()
-ok(A:Profile().inviteMode=="whisper","invite dropdown selection persists")
+A.ui.modeDropdown.scripts.OnClick(A.ui.modeDropdown)
+A.ui.modeDropdown.choiceButtons[3].scripts.OnClick()
+ok(A:Profile().inviteMode=="whisper" and not A.ui.modeDropdown.choiceMenu:IsShown(),
+   "contact mode private menu selection persists")
 A:Profile().inviteMode="invite";A:UpdateSettings()
+A.ui.modeDropdown.scripts.OnClick(A.ui.modeDropdown)
+A.ui.prefs:Hide()
+ok(not A.ui.modeDropdown.choiceMenu:IsShown(),"closing settings closes private menu")
+A.ui.prefs:Show()
+
+-- GAME_TEST_006 user report: levels were editable but reopening reverted to
+-- 20..110 unless explicit Save was clicked. Simulate real user text changes;
+-- the mock SetText itself correctly emits userInput=false (not a keystroke).
+local function userEdit(field,value)
+    field:SetFocus()
+    field:SetText(value)
+    if field.scripts.OnTextChanged then field.scripts.OnTextChanged(field,true) end
+end
+ok(A.ui.minLevel.scripts.OnTextChanged and A.ui.maxLevel.scripts.OnTextChanged and
+   A.ui.minLevel.scripts.OnEnterPressed and A.ui.maxLevel.scripts.OnEditFocusLost,
+   "level fields actively capture user edits, Enter and focus changes")
+A:ShowSettings()
+userEdit(A.ui.minLevel,"10")
+userEdit(A.ui.maxLevel,"90")
+ok(A:Profile().minLevel==10 and A:Profile().maxLevel==90,
+   "actual user typing 10..90 automatically saves the per-guild profile")
+A.ui.prefs:Hide();A:ShowSettings()
+ok(A.ui.minLevel:GetText()=="10" and A.ui.maxLevel:GetText()=="90",
+   "closing and reopening settings shows typed 10..90 without explicit Save")
+local whoRequestsBefore=#requests
+A:Profile().hcMode="all"
+A:StartScan();A:TickScanner()
+ok(#requests==whoRequestsBefore+1 and requests[#requests]=="10-90",
+   "real WHO request range uses auto-saved 10..90 rather than old 20..110")
+A:StopScan("Fixture range 10..90");A:Profile().hcMode="exclude"
+A:UpdateSettings()
+userEdit(A.ui.minLevel,"15")
+A.ui.minLevel.scripts.OnEnterPressed(A.ui.minLevel)
+ok(A:Profile().minLevel==15,"pressing Enter commits a changed minimum")
+userEdit(A.ui.maxLevel,"80")
+A.ui.modeDropdown.scripts.OnClick(A.ui.modeDropdown)
+A.ui.modeDropdown.choiceButtons[2].scripts.OnClick()
+ok(A:Profile().minLevel==15 and A:Profile().maxLevel==80 and
+   A.ui.minLevel:GetText()=="15" and A.ui.maxLevel:GetText()=="80",
+   "selecting invitation action does not silently revert pending level edits")
+A:Profile().inviteMode="invite";A:UpdateSettings()
+A.ui.prefs:Hide()
+A.currentGuildKey=nil;A.currentProfile=nil
+A:ShowSettings()
+ok(A:Profile().minLevel==15 and A:Profile().maxLevel==80 and
+   A.ui.minLevel:GetText()=="15" and A.ui.maxLevel:GetText()=="80",
+   "saved range persists when profile object is reconstructed (relog simulation)")
+userEdit(A.ui.minLevel,"100")
+ok(A:Profile().minLevel==15,"invalid minimum above maximum is rejected")
+A.ui.prefs:Hide();A:ShowSettings()
+ok(A.ui.minLevel:GetText()=="15" and A.ui.maxLevel:GetText()=="80",
+   "invalid range does not overwrite persistent settings when window closes")
+userEdit(A.ui.maxLevel,"0")
+A.ui.prefs:Hide();A:ShowSettings()
+ok(A:Profile().maxLevel==80 and A.ui.maxLevel:GetText()=="80",
+   "zero maximum is rejected and restored")
+userEdit(A.ui.realmId,"45")
+A.ui.prefs:Hide();A:ShowSettings()
+ok(A:Profile().realmId==45 and A.ui.realmId:GetText()=="45",
+   "World ID field also saves and displays values on window reopen")
+userEdit(A.ui.realmId,"44")
+A.ui.minLevel:SetText("21")
+A.ui.maxLevel:SetText("91")
+ok(A:Profile().minLevel==15 and A:Profile().maxLevel==80,
+   "programmatic SetText never saves settings without real user input")
+A.ui.savePrefs.scripts.OnClick(A.ui.savePrefs)
+ok(A:Profile().minLevel==21 and A:Profile().maxLevel==91,
+   "original explicit Save button still commits valid search limits")
+A.ui.minLevel:SetText("17")
+A.ui.minLevel.scripts.OnEditFocusLost(A.ui.minLevel)
+ok(A:Profile().minLevel==17,"focus-lost fallback commits a completed edit")
+userEdit(A.ui.minLevel,"abc")
+A.ui.minLevel.scripts.OnEscapePressed(A.ui.minLevel)
+ok(A:Profile().minLevel==17 and A.ui.minLevel:GetText()=="17",
+   "Escape cancels invalid input without corrupting saved profile")
+userEdit(A.ui.minLevel,"20")
+userEdit(A.ui.maxLevel,"110")
+ok(A:Profile().minLevel==20 and A:Profile().maxLevel==110 and A:Profile().realmId==44,
+   "fixture resets normal default 20..110 and HC World ID44")
+A.ui.prefs:Hide();A:ShowSettings()
+-- The existing WHO regression below expects its own request log to start empty.
+requests={}
 
 ok(A.ui.mini:GetWidth()==455 and A.ui.mini:GetHeight()==118,"mini panel substantially reduced")
 ok(A.ui.showButton:GetWidth()==157 and A.ui.scanButton:GetWidth()==127 and
@@ -602,6 +704,47 @@ ok(nativeWhoUI==false,"timeout restores WHO routing")
 
 -- No automatic action from those 50 candidates, even after timer progression.
 ok(#invites==3 and #whispers==2,"search does not auto-invite or whisper")
+
+-- New 1.0.1 regression: already contacted players are excluded *during /who*.
+A:Profile().hcMode="all"
+local previouslyContacted="Отказавшийся"
+local contactToken=A:Fold(previouslyContacted)
+local contactTime=A:WallClock()
+A:Profile().contacts[contactToken]=contactTime
+whoResults={
+    {name="ОТКАЗАВШИЙСЯ",guild="",level=64,race="Эльф",class="Маг",zone="",classFile="MAGE"},
+    {name="НовыйИгрок",guild="",level=53,race="Эльф",class="Друид",zone="",classFile="DRUID"},
+}
+whoTotal=2
+A:StartScan();A:TickScanner();A:OnWhoResult()
+ok(#A.candidates==1 and A.candidates[1].name=="НовыйИгрок",
+   "recent contact hidden from WHO candidates using case-folded Cyrillic name")
+ok(A.scan.stats.unguilded==2 and A.scan.stats.filtered==1,
+   "recent contact counted in excluded candidates, not silently lost WHO results")
+A:StopScan("Fixture 30-day suppression")
+now=now+30*86400-1
+ok(A:RecentContact({name=previouslyContacted}),"contact still blocked immediately before 30-day deadline")
+now=now+1
+ok(not A:RecentContact({name=previouslyContacted}),"contact automatically expires at 30 days")
+A:StartScan();A:TickScanner();A:OnWhoResult()
+ok(#A.candidates==2,"expired contact appears again after new WHO search")
+A:StopScan("Fixture expiration")
+A:Profile().contacts[contactToken]=A:WallClock()
+A:ResetContacts()
+A:StartScan();A:TickScanner();A:OnWhoResult()
+ok(#A.candidates==2,"explicit reset restores candidate during new WHO search")
+A:StopScan("Fixture cleared history")
+A:Profile().contacts[contactToken]=A:WallClock()
+guildName="Тестовая Другая Гильдия"
+A.currentGuildKey=nil
+A:Profile().hcMode="all"
+A:StartScan();A:TickScanner();A:OnWhoResult()
+ok(#A.candidates==2,"30-day exclusion stays within the character/guild profile")
+A:StopScan("Fixture other-guild history")
+guildName="Тестовая Гильдия"
+A.currentGuildKey=nil
+A:Profile().contacts[contactToken]=nil
+
 
 -- Deletion is shared, but performed only via accepted dialog.
 A:DeleteFilter(id)

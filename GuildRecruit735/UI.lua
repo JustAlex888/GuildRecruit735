@@ -1,4 +1,4 @@
--- GuildRecruit735 0.1.5 UI. Native Blizzard widgets; original MIT implementation.
+-- GuildRecruit735 UI. Original MIT implementation. No shared Blizzard dropdown globals.
 local A=GR735
 local function panel(name,w,h)
     local f=CreateFrame("Frame",name,UIParent)
@@ -66,23 +66,54 @@ local CLASS_CHOICES={{"WARRIOR","Воин"},{"PALADIN","Паладин"},
     {"MAGE","Маг"},{"WARLOCK","Чернокнижник"},{"MONK","Монах"},
     {"DRUID","Друид"},{"DEMONHUNTER","Охотник на демонов"}}
 local OLD_TYPES={name="Имя",guild="Гильдия (старый)",realm="Суффикс (старый)",class="Класс (старый)"}
+-- Built-in UIDropDownMenu shares mutable globals with Blizzard's raid menus.
+-- Those globals can taint protected CompactRaidFrame:Show during combat.
+-- Small private controls keep the same three choices without that shared API.
+local openChoiceMenu
 local function dropdown(parent,name,x,y,width,choices,property)
-    local d=CreateFrame("Frame",name,parent,"UIDropDownMenuTemplate")
+    local d=CreateFrame("Button",name,parent,"UIPanelButtonTemplate")
+    d:SetSize(width,27)
     d:SetPoint("TOPLEFT",parent,"TOPLEFT",x,y)
-    UIDropDownMenu_SetWidth(d,width)
-    UIDropDownMenu_Initialize(d,function(_,level)
-        if level~=1 then return end
-        for _,choice in ipairs(choices) do
-            local value,title=choice[1],choice[2]
-            local info=UIDropDownMenu_CreateInfo()
-            info.text=A:T(title);info.value=value
-            info.checked=A:Profile()[property]==value
-            info.func=function()
-                A:Profile()[property]=value
-                A:UpdateSettings()
-                CloseDropDownMenus()
-            end
-            UIDropDownMenu_AddButton(info,level)
+    d:RegisterForClicks("LeftButtonUp")
+    d.menuWidth=width
+    label(d,"▾",width-21,-5,18,"GameFontNormalSmall")
+    local menu=CreateFrame("Frame",nil,parent)
+    menu:SetPoint("TOPLEFT",d,"BOTTOMLEFT",0,-2)
+    menu:SetSize(width,#choices*28+8)
+    menu:SetFrameLevel(parent:GetFrameLevel()+12)
+    menu:SetBackdrop({bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=16,
+        insets={left=4,right=4,top=4,bottom=4}})
+    menu:SetBackdropColor(.045,.035,.03,.98)
+    menu:SetBackdropBorderColor(.58,.45,.20,1)
+    menu:EnableMouse(true)
+    menu:Hide()
+    menu:SetScript("OnHide",function()
+        if openChoiceMenu==menu then openChoiceMenu=nil end
+    end)
+    d.choiceMenu=menu
+    d.choiceButtons={}
+    for i,choice in ipairs(choices) do
+        local value,title=choice[1],choice[2]
+        local item=CreateFrame("Button",nil,menu,"UIPanelButtonTemplate")
+        item:SetSize(width-12,25)
+        item:SetPoint("TOPLEFT",menu,"TOPLEFT",6,-5-(i-1)*28)
+        item:RegisterForClicks("LeftButtonUp")
+        item:SetText(A:T(title))
+        item:SetScript("OnClick",function()
+            A:Profile()[property]=value
+            menu:Hide()
+            A:UpdateSettings()
+        end)
+        d.choiceButtons[i]=item
+    end
+    d:SetScript("OnClick",function()
+        if menu:IsShown() then
+            menu:Hide()
+        else
+            if openChoiceMenu and openChoiceMenu~=menu then openChoiceMenu:Hide() end
+            menu:Show()
+            openChoiceMenu=menu
         end
     end)
     return d
@@ -158,17 +189,50 @@ function A:BuildUI()
     -- World ID 44 is intentionally unchanged until the server behavior is verified.
     label(prefs,"World ID для HC (x1 = 44):",22,-219,310)
     U.realmId=input(prefs,90,360,-211,4)
-    U.savePrefs=button(prefs,"Сохранить настройки поиска",256,29,261,-250,function()
-        local p=A:Profile()
+    -- Store completed, valid edits immediately; the former implementation
+    -- only committed on an explicit Save click, so closing the panel silently
+    -- discarded typed level ranges. SavedVariables keys/schema stay unchanged.
+    local function commitSearchPreferences(announce)
         local lo,hi,r=tonumber(U.minLevel:GetText()),tonumber(U.maxLevel:GetText()),tonumber(U.realmId:GetText())
-        if not lo or not hi or not r or lo<1 or hi>110 or hi<lo or r<1 or
+        if not lo or not hi or not r or lo<1 or lo>110 or hi<lo or hi>110 or r<1 or
            lo~=math.floor(lo) or hi~=math.floor(hi) or r~=math.floor(r) then
-            A:Message("Некорректный уровень или World ID.")
-            return
+            if announce then A:Message("Некорректный уровень или World ID.") end
+            return false
         end
+        local p=A:Profile()
+        if p.realmId~=r then A.liveRealmID=nil end
         p.minLevel=lo;p.maxLevel=hi;p.realmId=r
-        A.liveRealmID=nil;A:UpdateSettings()
-        A:Message("Настройки поиска сохранены для этого персонажа и гильдии.")
+        if announce then
+            A:UpdateSettings()
+            A:Message("Настройки поиска сохранены для этого персонажа и гильдии.")
+        end
+        return true
+    end
+    for _,field in ipairs({U.minLevel,U.maxLevel,U.realmId}) do
+        field:SetScript("OnTextChanged",function(_,userInput)
+            -- WoW fires userInput=false for SetText() from UpdateSettings.
+            if userInput then commitSearchPreferences(false) end
+        end)
+        field:SetScript("OnEditFocusLost",function() commitSearchPreferences(false) end)
+        field:SetScript("OnEnterPressed",function(self)
+            if commitSearchPreferences(true) then self:ClearFocus() end
+        end)
+        field:SetScript("OnEscapePressed",function(self)
+            self:ClearFocus()
+            A:UpdateSettings()
+        end)
+    end
+    -- Also accept edits when dismissed via the X/Esc settings window, even
+    -- if this client does not fire EditBox's focus-lost event on frame hide.
+    prefs:HookScript("OnHide",function()
+        if not commitSearchPreferences(false) then
+            A:Message("Некорректный уровень или World ID.")
+        end
+        U.hcDropdown.choiceMenu:Hide()
+        U.modeDropdown.choiceMenu:Hide()
+    end)
+    U.savePrefs=button(prefs,"Сохранить настройки поиска",256,29,261,-250,function()
+        commitSearchPreferences(true)
     end)
     button(prefs,"Фильтры",231,32,22,-300,function() A:ShowFilterWindow() end)
     button(prefs,"Сообщения",231,32,287,-300,function() A:ShowMessages() end)
@@ -453,14 +517,14 @@ function A:UpdateSettings()
     U.guildText:SetText(self:GuildKey())
     for _,choice in ipairs(HC_MODES) do
         if choice[1]==p.hcMode then
-            UIDropDownMenu_SetSelectedValue(U.hcDropdown,choice[1])
-            UIDropDownMenu_SetText(U.hcDropdown,self:T(choice[2]))
+            U.hcDropdown.selected=choice[1]
+            U.hcDropdown:SetText(self:T(choice[2]))
         end
     end
     for _,choice in ipairs(INV_MODES) do
         if choice[1]==p.inviteMode then
-            UIDropDownMenu_SetSelectedValue(U.modeDropdown,choice[1])
-            UIDropDownMenu_SetText(U.modeDropdown,self:T(choice[2]))
+            U.modeDropdown.selected=choice[1]
+            U.modeDropdown:SetText(self:T(choice[2]))
         end
     end
     U.minLevel:SetText(tostring(p.minLevel or 20))
