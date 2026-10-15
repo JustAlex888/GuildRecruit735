@@ -1,18 +1,20 @@
 -- GuildRecruit735 UI. Original MIT implementation. No shared Blizzard dropdown globals.
 local A=GR735
-local function panel(name,w,h)
-    local f=CreateFrame("Frame",name,UIParent)
+local function panel(name,w,h,parent)
+    local f=CreateFrame("Frame",name,parent or UIParent)
     f:SetSize(w,h);f:SetFrameStrata("DIALOG")
     f:SetBackdrop({bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=16,
         insets={left=5,right=5,top=5,bottom=5}})
     f:SetBackdropColor(.045,.035,.03,.96)
     f:SetBackdropBorderColor(.58,.45,.20,1)
-    f:SetMovable(true);f:EnableMouse(true)
+    f:SetMovable(not parent);f:EnableMouse(true)
+    if not parent then
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart",function(self) self:StartMoving() end)
     f:SetScript("OnDragStop",function(self) self:StopMovingOrSizing() end)
     if f.SetClampedToScreen then f:SetClampedToScreen(true) end
+    end
     if UISpecialFrames then table.insert(UISpecialFrames,name) end
     f:Hide()
     return f
@@ -76,7 +78,7 @@ local function dropdown(parent,name,x,y,width,choices,property)
     d:SetPoint("TOPLEFT",parent,"TOPLEFT",x,y)
     d:RegisterForClicks("LeftButtonUp")
     d.menuWidth=width
-    label(d,"▾",width-21,-5,18,"GameFontNormalSmall")
+    -- Selected label is the full control; no font-dependent decorative glyph.
     local menu=CreateFrame("Frame",nil,parent)
     menu:SetPoint("TOPLEFT",d,"BOTTOMLEFT",0,-2)
     menu:SetSize(width,#choices*28+8)
@@ -140,17 +142,9 @@ function A:BuildUI()
     self.ui={}
     local U=self.ui
     -- Compact panel is initially HIDDEN. /gr735 shows/hides it deliberately.
-    local mini=panel("GR735MiniPanel",455,118)
+    local mini=panel("GR735MiniPanel",455,114)
     U.mini=mini;mini:SetPoint("CENTER",UIParent,"CENTER",0,125)
-    U.state=label(mini,"Ожидание сканирования",16,-12,283,"GameFontNormal")
-    U.counter=label(mini,"Подходящих: 0 | Запросов /who: 0",16,-37,420,"GameFontHighlightSmall")
-    U.scanDetails=label(mini,"Сканирование не запускалось",16,-56,420,"GameFontHighlightSmall")
-    button(mini,"Настройки",99,23,309,-10,function() A:ShowSettings() end)
-    closeButton(mini)
-    U.showButton=button(mini,"Показать игроков (0)",157,27,14,-80,function() A:ShowCandidates() end)
-    if U.showButton.GetFontString then growFont(U.showButton:GetFontString(),1) end
-    U.scanButton=button(mini,"Сканирование",127,27,180,-80,function() A:StartScan() end)
-    U.clearButton=button(mini,"Очистить",124,27,317,-80,function()
+    U.clearButton=button(mini,"Очистить",124,25,14,-12,function()
         if A.scan.active then A:StopScan("Остановлено перед очисткой") end
         A:ClearCandidates()
         A.scan.stats={rows=0,unguilded=0,filtered=0,hardcore=0,duplicates=0}
@@ -158,6 +152,12 @@ function A:BuildUI()
         A:UpdateMini()
     end)
     tip(U.clearButton,"Очищает результаты текущего сканирования, но не настройки и фильтры.")
+    U.counter=label(mini,"",16,-46,423,"GameFontHighlightSmall")
+    U.settingsButton=button(mini,"Настройки",116,27,325,-76,function() A:ToggleSettings() end)
+    closeButton(mini)
+    U.scanButton=button(mini,"Сканирование",127,27,14,-76,function() A:StartScan() end)
+    U.showButton=button(mini,"Показать игроков",166,27,151,-76,function() A:ShowCandidates() end)
+    if U.showButton.GetFontString then growFont(U.showButton:GetFontString(),1) end
 
     -- Existing candidate list layout and safe manual click actions are preserved.
     local list=panel("GR735CandidateList",608,330)
@@ -173,22 +173,20 @@ function A:BuildUI()
     child:SetSize(526,225);scroll:SetScrollChild(child)
     U.scroll=scroll;U.rowsParent=child;U.rows={}
 
-    local prefs=panel("GR735Preferences",548,463)
-    U.prefs=prefs;prefs:SetPoint("CENTER",UIParent,"CENTER",0,0)
-    label(prefs,"GuildRecruit735 — настройки",18,-15,485,"GameFontNormalLarge")
+    local prefs=panel("GR735Preferences",548,300,mini)
+    U.prefs=prefs
+    label(prefs,"GuildRecruit735 — настройки",18,-15,475,"GameFontNormalLarge")
     closeButton(prefs)
-    U.guildText=label(prefs,"",20,-55,500,"GameFontHighlightSmall")
-    label(prefs,"Режим Hardcore:",22,-89,210)
-    U.hcDropdown=dropdown(prefs,"GR735HCDropdown",231,-68,259,HC_MODES,"hcMode")
-    label(prefs,"Действие при выборе игрока:",22,-133,220)
-    U.modeDropdown=dropdown(prefs,"GR735InviteDropdown",231,-113,259,INV_MODES,"inviteMode")
-    label(prefs,"Уровни поиска (20–110 по умолчанию):",22,-178,310)
-    U.minLevel=input(prefs,70,344,-168,3)
-    U.maxLevel=input(prefs,70,449,-168,3)
-    label(prefs,"—",432,-175,17)
-    -- World ID 44 is intentionally unchanged until the server behavior is verified.
-    label(prefs,"World ID для HC (x1 = 44):",22,-219,310)
-    U.realmId=input(prefs,90,360,-211,4)
+    label(prefs,"Режим Hardcore:",22,-58,205)
+    U.hcDropdown=dropdown(prefs,"GR735HCDropdown",231,-49,295,HC_MODES,"hcMode")
+    label(prefs,"Действие при выборе игрока:",22,-96,205)
+    U.modeDropdown=dropdown(prefs,"GR735InviteDropdown",231,-87,295,INV_MODES,"inviteMode")
+    label(prefs,"Уровни:",22,-137,80)
+    U.minLevel=input(prefs,58,102,-129,3)
+    U.maxLevel=input(prefs,58,188,-129,3)
+    label(prefs,"—",167,-136,17)
+    label(prefs,"World ID:",280,-137,92)
+    U.realmId=input(prefs,90,384,-129,4)
     -- Store completed, valid edits immediately; the former implementation
     -- only committed on an explicit Save click, so closing the panel silently
     -- discarded typed level ranges. SavedVariables keys/schema stay unchanged.
@@ -230,33 +228,32 @@ function A:BuildUI()
         end
         U.hcDropdown.choiceMenu:Hide()
         U.modeDropdown.choiceMenu:Hide()
+        U.minLevel:ClearFocus();U.maxLevel:ClearFocus();U.realmId:ClearFocus()
     end)
-    U.savePrefs=button(prefs,"Сохранить настройки поиска",256,29,261,-250,function()
+    U.savePrefs=button(prefs,"Сохранить настройки поиска",302,29,224,-171,function()
         commitSearchPreferences(true)
     end)
-    button(prefs,"Фильтры",231,32,22,-300,function() A:ShowFilterWindow() end)
-    button(prefs,"Сообщения",231,32,287,-300,function() A:ShowMessages() end)
-    U.resetContacts=button(prefs,"Сбросить историю контактов (30 дней)",354,29,22,-342,function()
+    U.messagesButton=button(prefs,"Сообщения",244,30,22,-212,function() A:ShowMessages() end)
+    U.filtersButton=button(prefs,"Фильтры",244,30,282,-212,function() A:ShowFilterWindow() end)
+    U.resetContacts=button(prefs,"Сбросить историю контактов (30 дней)",410,29,22,-253,function()
         A:ConfirmResetContacts()
     end)
-    label(prefs,"Каталог имён общий; фильтры включаются отдельно для персонажа.",22,-389,502,"GameFontHighlightSmall")
-    label(prefs,"/gr735 minimap • /gr735 resetcontacts • /gr735 version",22,-419,505,"GameFontHighlightSmall")
 
     -- Two clear filter tabs. No technical "substring kind" or example realm suffix.
-    local filters=panel("GR735Filters",572,296)
-    U.filters=filters;filters:SetPoint("CENTER",UIParent,"CENTER",0,0)
-    label(filters,"Фильтры игроков",18,-15,500,"GameFontNormalLarge")
+    local filters=panel("GR735Filters",500,256,prefs)
+    U.filters=filters
+    label(filters,"Фильтры игроков",18,-15,423,"GameFontNormalLarge")
     closeButton(filters)
-    label(filters,"Исключения. ЛКМ — включить/выключить; ПКМ — удалить с подтверждением.",19,-50,524,"GameFontHighlightSmall")
+
     U.filterTab="names"
-    U.namesTab=button(filters,"Имена",247,29,18,-79,function() U.filterTab="names";A:UpdateFilters() end)
-    U.classesTab=button(filters,"Классы",247,29,292,-79,function() U.filterTab="classes";A:UpdateFilters() end)
+    U.namesTab=button(filters,"Имена",222,29,18,-52,function() U.filterTab="names";A:UpdateFilters() end)
+    U.classesTab=button(filters,"Классы",222,29,258,-52,function() U.filterTab="classes";A:UpdateFilters() end)
     local namesArea=CreateFrame("Frame",nil,filters)
-    namesArea:SetSize(545,240);namesArea:SetPoint("TOPLEFT",filters,"TOPLEFT",0,0)
+    namesArea:SetSize(500,240);namesArea:SetPoint("TOPLEFT",filters,"TOPLEFT",0,0)
     U.namesArea=namesArea
-    label(namesArea,"Исключение по имени",22,-119,290)
-    U.nameExclusion=input(namesArea,380,22,-144,64)
-    U.addName=button(namesArea,"Добавить",116,27,431,-144,function()
+    label(namesArea,"Исключение по имени",22,-94,290)
+    U.nameExclusion=input(namesArea,326,22,-118,64)
+    U.addName=button(namesArea,"Добавить",116,27,364,-118,function()
         local ok,why=A:AddNameExclusion(U.nameExclusion:GetText())
         if ok then
             U.nameExclusion:SetText("")
@@ -265,61 +262,62 @@ function A:BuildUI()
         else A:Message(why) end
     end)
     local fscroll=CreateFrame("ScrollFrame",nil,namesArea,"UIPanelScrollFrameTemplate")
-    fscroll:SetPoint("TOPLEFT",namesArea,"TOPLEFT",18,-189)
-    fscroll:SetSize(528,36)
+    fscroll:SetPoint("TOPLEFT",namesArea,"TOPLEFT",18,-158)
+    fscroll:SetSize(444,32)
     local fchild=CreateFrame("Frame",nil,fscroll)
-    fchild:SetSize(500,36);fscroll:SetScrollChild(fchild)
+    fchild:SetSize(440,32);fscroll:SetScrollChild(fchild)
     U.filterScroll=fscroll;U.filterParent=fchild;U.filterButtons={}
-    U.noFilters=label(namesArea,"Исключений пока нет.",25,-200,490,"GameFontHighlightSmall")
+    U.noFilters=label(namesArea,"Исключений пока нет.",25,-166,420,"GameFontHighlightSmall")
     U.closeFilters=button(filters,"Закрыть",172,29,373,-257,function() filters:Hide() end)
     U.closeFilters:ClearAllPoints()
     U.closeFilters:SetPoint("BOTTOMRIGHT",filters,"BOTTOMRIGHT",-18,16)
     local classesArea=CreateFrame("Frame",nil,filters)
-    classesArea:SetSize(545,245);classesArea:SetPoint("TOPLEFT",filters,"TOPLEFT",0,0)
+    classesArea:SetSize(500,294);classesArea:SetPoint("TOPLEFT",filters,"TOPLEFT",0,0)
     U.classesArea=classesArea
-    label(classesArea,"Не показывать игроков выбранных классов:",22,-118,510,"GameFontHighlightSmall")
+    label(classesArea,"Не показывать игроков выбранных классов:",22,-94,460,"GameFontHighlightSmall")
     U.classChecks={}
     for i,c in ipairs(CLASS_CHOICES) do
         local col=math.floor((i-1)/6)
         local row=(i-1)%6
-        local x=20+col*275
-        local y=-142-row*29
+        local x=20+col*240
+        local y=-119-row*28
         local cb=CreateFrame("CheckButton",nil,classesArea,"UICheckButtonTemplate")
         cb:SetSize(25,25);cb:SetPoint("TOPLEFT",classesArea,"TOPLEFT",x,y)
         cb.classFile=c[1]
-        label(classesArea,c[2],x+27,y-4,232,"GameFontHighlight")
+        label(classesArea,c[2],x+27,y-4,206,"GameFontHighlight")
         cb:SetScript("OnClick",function(self) A:SetClassExcluded(self.classFile,self:GetChecked()==true) end)
         U.classChecks[c[1]]=cb
     end
     classesArea:Hide()
 
-    local messages=panel("GR735Messages",650,424)
-    U.messages=messages;messages:SetPoint("CENTER",UIParent,"CENTER",0,0)
-    label(messages,"Шаблоны личных сообщений",18,-15,570,"GameFontNormalLarge")
+    U.messageDrafts={}
+    local messages=panel("GR735Messages",548,300,prefs)
+    U.messages=messages
+    label(messages,"Шаблоны личных сообщений",18,-15,475,"GameFontNormalLarge")
     closeButton(messages)
-    U.previousTemplate=button(messages,"<",57,28,22,-64,function()
+    U.previousTemplate=button(messages,"<",48,26,22,-48,function()
         local p=A:Profile();p.selectedTemplate=((p.selectedTemplate or 1)+4)%6+1
         A:UpdateMessages()
     end)
-    U.templateLabel=label(messages,"Шаблон 1 из 6",100,-68,360)
-    U.nextTemplate=button(messages,">",57,28,571,-64,function()
+    U.templateLabel=label(messages,"Шаблон 1 из 6",92,-53,330)
+    U.nextTemplate=button(messages,">",48,26,478,-48,function()
         local p=A:Profile();p.selectedTemplate=((p.selectedTemplate or 1)%6)+1
         A:UpdateMessages()
     end)
     local editorBackdrop=CreateFrame("Frame",nil,messages)
-    editorBackdrop:SetSize(606,165)
-    editorBackdrop:SetPoint("TOPLEFT",messages,"TOPLEFT",21,-110)
+    editorBackdrop:SetSize(506,122)
+    editorBackdrop:SetPoint("TOPLEFT",messages,"TOPLEFT",21,-86)
     editorBackdrop:SetBackdrop({bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=12,
         insets={left=4,right=4,top=4,bottom=4}})
     editorBackdrop:SetBackdropColor(.025,.025,.025,.97)
     local messageScroll=CreateFrame("ScrollFrame",nil,editorBackdrop,"UIPanelScrollFrameTemplate")
     messageScroll:SetPoint("TOPLEFT",editorBackdrop,"TOPLEFT",11,-9)
-    messageScroll:SetSize(566,145)
+    messageScroll:SetSize(466,102)
     U.messageScroll=messageScroll
     local msgbox=CreateFrame("EditBox",nil,messageScroll)
     U.msgbox=msgbox
-    msgbox:SetSize(551,147);msgbox:SetMultiLine(true);msgbox:SetAutoFocus(false)
+    msgbox:SetSize(451,104);msgbox:SetMultiLine(true);msgbox:SetAutoFocus(false)
     msgbox:EnableMouse(true)
     msgbox:SetMaxLetters(512)
     if ChatFontNormal then msgbox:SetFontObject(ChatFontNormal) end
@@ -337,7 +335,10 @@ function A:BuildUI()
     msgbox:SetScript("OnTextChanged",function(self)
         if self.GetTextHeight then
             local h=self:GetTextHeight()
-            if type(h)=="number" then self:SetHeight(math.max(147,h+22)) end
+            if type(h)=="number" then self:SetHeight(math.max(104,h+22)) end
+        end
+        if not U.loadingMessage and U.messageProfile and U.messageIndex then
+            U.messageDrafts[U.messageProfile][U.messageIndex]=self:GetText()
         end
         A:UpdateMessageCounter()
     end)
@@ -353,19 +354,18 @@ function A:BuildUI()
         end
     end)
     messageScroll:SetScrollChild(msgbox)
-    U.messageCount=label(messages,"0 символов (с пробелами) | 0 / 255 байт",22,-289,600,"GameFontHighlightSmall")
-    label(messages,"Переменные: {player}, {guild}, {level}, {class}.",22,-313,602,"GameFontHighlightSmall")
-    label(messages,"Пример: Привет, {player}! Приглашаем тебя в гильдию {guild}.",22,-337,606,"GameFontHighlightSmall")
-    label(messages,"Переносы строк при отправке заменяются пробелами.",22,-358,594,"GameFontHighlightSmall")
-    U.saveMessage=button(messages,"Сохранить шаблон",284,32,20,-380,function()
+    U.messageCount=label(messages,"0 символов (с пробелами) | 0 / 255 байт",22,-216,504,"GameFontHighlightSmall")
+    label(messages,"Переменные: {player}, {guild}, {level}, {class}.",22,-243,504,"GameFontHighlightSmall")
+    U.saveMessage=button(messages,"Сохранить шаблон",244,28,20,-265,function()
         local p=A:Profile();local raw=U.msgbox:GetText()
         local ok,why=A:ValidateTemplate(raw)
         if not ok then A:Message(why);return end
         p.templates[p.selectedTemplate or 1]=raw
+        U.messageDrafts[p][p.selectedTemplate or 1]=nil
         U.msgbox:ClearFocus()
         A:Message("Шаблон сохранён для этого персонажа и гильдии.")
     end)
-    button(messages,"Закрыть",284,32,345,-380,function() messages:Hide() end)
+    button(messages,"Закрыть",244,28,284,-265,function() messages:Hide() end)
 
     StaticPopupDialogs["GR735_REMOVE_FILTER"]={
         text=A:T("Удалить фильтр «%s» из ОБЩЕГО каталога этого WoW-аккаунта?"),
@@ -388,23 +388,17 @@ function A:BuildUI()
         end,
         timeout=0,whileDead=1,hideOnEscape=1,preferredIndex=3
     }
+    self:InitializeDocking()
     -- Do not call mini:Show() at login; the user opens it with /gr735.
 end
 
 function A:UpdateMini()
     local U=self.ui;if not U then return end
     local s=self.scan
-    local states={idle="Ожидание сканирования",ready="Сканирование",wait_hc="Ожидание HC",wait_who="Поиск /who"}
-    U.state:SetText(self:T(states[s.state] or s.state))
-    U.counter:SetText(self:T("Подходящих: %d | Запросов /who: %d",#self.candidates,s.queryCount or 0))
-    local stats=s.stats
-    if stats and (stats.rows or 0)>0 then
-        U.scanDetails:SetText(self:T("Ответов WHO: %d | Без гильдии: %d | Исключено: %d",
-            stats.rows,stats.unguilded,stats.filtered+stats.hardcore))
-    else
-        U.scanDetails:SetText(self:T(s.active and "Ожидание ответа сервера..." or "Результатов сканирования пока нет"))
-    end
-    U.showButton:SetText(self:T("Показать игроков (%d)",#self.candidates))
+    local stats=s.stats or {}
+    U.counter:SetText(self:T("Всего: %d | Исключено: %d | Без гильдии: %d",
+        stats.rows or 0,(stats.filtered or 0)+(stats.hardcore or 0),stats.unguilded or 0))
+    U.showButton:SetText(self:T("Показать игроков"))
     U.scanButton:SetText(self:T(s.active and "Стоп" or "Сканирование"))
 end
 
@@ -472,7 +466,7 @@ function A:UpdateFilters()
         local b=U.filterButtons[i]
         if not b and i<=#list then
             b=CreateFrame("Button",nil,U.filterParent,"UIPanelButtonTemplate")
-            b:SetSize(496,29);b:RegisterForClicks("LeftButtonUp","RightButtonUp")
+            b:SetSize(438,29);b:RegisterForClicks("LeftButtonUp","RightButtonUp")
             b:SetScript("OnClick",function(self,mouse)
                 if not self.filterId then return end
                 if mouse=="RightButton" then
@@ -497,24 +491,24 @@ function A:UpdateFilters()
     end
     local rows=math.max(1,math.min(4,#list))
     U.filterScroll:SetHeight(rows*32)
-    U.filterParent:SetHeight(math.max(rows*32,y+8))
+    U.filterParent:SetHeight(math.max(rows*32,y))
     if #list==0 then U.noFilters:Show() else U.noFilters:Hide() end
     if U.filterTab=="classes" then
-        U.filters:SetHeight(368)
+        U.filters:SetHeight(334)
         U.classesArea:Show()
         for key,cb in pairs(U.classChecks) do
             cb:SetChecked(profile.excludedClasses[key]==true)
         end
     else
-        U.filters:SetHeight(275+(rows-1)*32)
+        U.filters:SetHeight(210+rows*32)
         U.namesArea:Show()
     end
+    if self.FitDockedPanels then self:FitDockedPanels() end
 end
 
 function A:UpdateSettings()
     local U=self.ui;if not U then return end
     local p=self:Profile()
-    U.guildText:SetText(self:GuildKey())
     for _,choice in ipairs(HC_MODES) do
         if choice[1]==p.hcMode then
             U.hcDropdown.selected=choice[1]
@@ -546,7 +540,11 @@ function A:UpdateMessages()
     local p=self:Profile()
     local index=p.selectedTemplate or 1
     U.templateLabel:SetText(self:T("Шаблон %d из 6",index))
-    U.msgbox:SetText(p.templates[index] or "")
+    U.messageDrafts[p]=U.messageDrafts[p] or {}
+    U.messageProfile=p;U.messageIndex=index;U.loadingMessage=true
+    local draft=U.messageDrafts[p][index]
+    U.msgbox:SetText(draft~=nil and draft or (p.templates[index] or ""))
+    U.loadingMessage=false
     self:UpdateMessageCounter()
 end
 
@@ -560,21 +558,12 @@ end
 
 function A:ToggleMini()
     if not self.ui then return end
-    if self.ui.mini:IsShown() then self.ui.mini:Hide() else self.ui.mini:Show() end
+    if self.ui.mini:IsShown() then self.ui.mini:Hide() else self.ui.mini:Show();self:FitDockedPanels() end
 end
 function A:ShowCandidates()
     if not self.ui then return end
-    self.ui.list:Show();self:UpdateCandidates()
+    if self.ui.list:IsShown() then self.ui.list:Hide() else self:UpdateCandidates();self.ui.list:Show() end
 end
-function A:ShowSettings()
-    if not self.ui then return end
-    self:UpdateSettings();self.ui.prefs:Show()
-end
-function A:ShowFilterWindow()
-    if not self.ui then return end
-    self:UpdateFilters();self.ui.filters:Show()
-end
-function A:ShowMessages()
-    if not self.ui then return end
-    self:UpdateMessages();self.ui.messages:Show()
-end
+function A:ShowSettings() self:OpenSettings() end
+function A:ShowFilterWindow() self:ToggleDock("filters") end
+function A:ShowMessages() self:ToggleDock("messages") end

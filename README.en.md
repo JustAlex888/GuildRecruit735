@@ -1,53 +1,30 @@
-# GuildRecruit735 — English
+# GuildRecruit735
 
-**Version 1.0.2** · **World of Warcraft Legion 7.3.5** · Interface **70300** · **MIT license**
+**Version 1.0.4** · **WoW Legion 7.3.5 / Interface 70300** · **MIT**
 
-GuildRecruit735 is an independently written assistant for **manual guild recruitment**. The principal observed target is **Legion Plus / UWoW x1**. This is **not** a fork of SuperGuildInvite and includes no third-party addon code, graphics or libraries.
+Independent manual guild recruitment assistant with Russian and English UI. Searches and contacts are initiated deliberately by the user; no bulk or automatic invitations.
 
-[Русская документация](README.md) · [Changelog](CHANGELOG.md) · [Known limitations](docs/KNOWN_LIMITATIONS.en.md) · [License](LICENSE)
+[Русский](README.md) · [Changelog](CHANGELOG.md) · [Known limitations](docs/KNOWN_LIMITATIONS.en.md)
 
-## Features
+![Compact interface, Russian client](docs/screenshots/ui-compact-russian-1.0.4.png)
 
-- Deliberately initiated, bounded `/who` searches; level range, progress counters and a candidate list. **No bulk or automated invitations.**
-- The editable level range now auto-saves valid entries and applies them to the next WHO search.
-- Name and class exclusions. Named filter catalogue shared within the WoW account, enabled separately for each character and guild.
-- Hardcore recruitment options (exclude HC / only HC / all) with conservative handling of unknown status. The initially configured x1 HC World ID is 44.
-- Choose a candidate manually to **invite only**, **whisper then invite**, or **whisper only**. Six editable templates support `{player}`, `{guild}`, `{level}`, `{class}`.
-- Players who were already contacted are omitted from subsequent WHO candidate lists for **30 days**, until expiration or a confirmed history reset.
-- Round minimap button: left-click opens or closes the main UI, right-click opens settings; observed with MinimapButtonBag.
-- Russian/English UI with automatic client-language selection or manual override.
+User-provided screenshot from the directly tested release parent. The final 1.0.4 addon differs from that parent only in version/build metadata.
 
-## Screenshots
+## Changes in 1.0.4
 
-![English interface, original screenshot from 0.1.5-TEST](docs/screenshots/ui-english-0.1.5-test.png)
+- Compact scan panel with three real counters and Clear / Scan-Stop / Show players / Settings controls.
+- Settings dock below the mini panel, aligned right; messages dock below settings, filters to their right. Both children can stay open together and toggle independently.
+- Settings toggle/X closes the whole dock family. Docks move together and fit the available screen. The player list stays a separate movable window.
+- Names/classes filter tabs, all twelve classes, up to four visible name-filter rows with scrolling for the rest. Existing catalogue and per-character/guild flags retained. Right-click global deletion still requires confirmation.
+- Six templates, explicit Save, Unicode/UTF8 counters and 255-byte validation. Variables: `{player}`, `{guild}`, `{level}`, `{class}`. Drafts survive panel switches; save explicitly before reload.
+- Existing saved levels, profile keys, 30-day contact suppression, HC-UNKNOWN confirmation and deliberate whisper-before-invite behavior retained.
 
-![Russian interface, original screenshot from 0.1.4-TEST](docs/screenshots/ui-russian-0.1.4-test.png)
+## Install
 
-*Screenshots: EN — 0.1.5-TEST; RU — 0.1.4-TEST (older test builds).*
+Close WoW. Download the **installation ZIP** from [Releases](https://github.com/JustAlex888/GuildRecruit735/releases/latest) and replace only `Interface/AddOns/GuildRecruit735`. Keep WTF. Open with the minimap button or `/gr735`; verify with `/gr735 version`. Minimap left-click toggles mini; right-click opens settings.
 
-## Installation
+Commands: `/gr735 options`, `filters`, `messages`, `scan`, `stop`, `minimap`, `resetcontacts`; `/gr735 lang ru|en|auto` applies after reload.
 
-1. Download the latest ZIP from [Releases](https://github.com/JustAlex888/GuildRecruit735/releases).
-2. Open the archive and copy the `GuildRecruit735` folder into `World of Warcraft/Interface/AddOns/`.
-3. Start World of Warcraft. Open the addon using its minimap button.
+The user accepted the interface and filters on the direct release parent. Actual screenshots show WHO results and candidates. Native Lua5.1, RU/EN fixtures and deterministic packaging are checked by CI. Full combat/taint/HC/x100/cross-realm coverage is not claimed; see [limitations](docs/KNOWN_LIMITATIONS.en.md).
 
-**Done!** To update, simply replace the `GuildRecruit735` folder with the new one from the archive. Your settings will be preserved.
-
-## Commands
-
-- `/gr735` — main panel; `/gr735 options` — settings; `/gr735 filters` — filters; `/gr735 messages` — templates.
-- `/gr735 scan`, `/gr735 stop` — start/stop WHO scan.
-- `/gr735 minimap` — hide/restore minimap icon.
-- `/gr735 resetcontacts` — confirm reset for the active character/guild profile.
-- `/gr735 lang ru|en|auto` — set addon UI language; use `/reload` afterward.
-- `/gr735 version` — print version and build ID.
-
-## Compatibility and limitations
-
-`GR735DB` and `GR735CharDB` keep the same SavedVariables identities/schema across the addon's own previous versions. Switching UI language never translates or overwrites user-created templates, filter values, character names or race/class strings returned by the client/server.
-
-Pre-release user evidence on x1 supports basic manual WHO, a working minimap launcher and an actually delivered whisper plus invitation. The English UI was shown working on 0.1.5-TEST. **The user reported a successful level-range recheck with 1.0.2-TEST; the exact repackaged 1.0.2 stable ZIP has not been game-tested independently.** **All HC modes, x100/cross-realm correctness, exhaustive WHO behavior and every reload scenario are not comprehensively game-verified.** See [known limitations](docs/KNOWN_LIMITATIONS.en.md).
-
-## Credits and license
-
-Original independent project by GuildRecruit735 contributors, released under the [MIT license](LICENSE). No SuperGuildInvite or other addon source is bundled. Warcraft screenshots contain Blizzard game visuals and are not licensed as part of the MIT-covered Lua code.
+Original independent MIT code. No SuperGuildInvite source, third-party addon libraries or borrowed artwork.

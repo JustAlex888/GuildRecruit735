@@ -32,7 +32,27 @@ local function fakeFrame(kind,name,parent)
     function f:SetFrameStrata(strata) self.strata=strata end
     function f:SetFrameLevel(level) self.frameLevel=level end
     function f:GetFrameLevel() return self.frameLevel or 1 end
-    function f:GetEffectiveScale() return self.effectiveScale or 1 end
+    function f:GetScale() return self.scale or 1 end
+    function f:SetScale(v) self.scale=v end
+    function f:GetEffectiveScale() return self.effectiveScale or self:GetScale()*(self.parent and self.parent:GetEffectiveScale() or 1) end
+    function f:IsVisible() return self.shown and (not self.parent or self.parent:IsVisible()) end
+    function f:Bounds()
+        if self==UIParent then return 0,0,self.w,self.h end
+        local p=self.point
+        if not p then return 0,0,self.w,self.h end
+        local point,rel,rp,dx,dy=unpack(p)
+        rel=rel or UIParent;rp=rp or point;dx=dx or 0;dy=dy or 0
+        local l,b,r,t=rel:Bounds()
+        local function fx(a) return a:find("LEFT") and 0 or (a:find("RIGHT") and 1 or .5) end
+        local function fy(a) return a:find("BOTTOM") and 0 or (a:find("TOP") and 1 or .5) end
+        local rs,ss=rel:GetEffectiveScale(),self:GetEffectiveScale()
+        local x=l+(r-l)*fx(rp)+dx*ss
+        local y=b+(t-b)*fy(rp)+dy*ss
+        local w,h=self.w*ss,self.h*ss
+        return x-w*fx(point),y-h*fy(point),x+w*(1-fx(point)),y+h*(1-fy(point))
+    end
+    function f:GetLeft() local l=self:Bounds();return l/self:GetEffectiveScale() end
+    function f:GetTop() local _,_,_,t=self:Bounds();return t/self:GetEffectiveScale() end
     function f:GetCenter() return self.centerX or 500,self.centerY or 500 end
     function f:SetWidth(w) self.w=w end
     function f:GetWidth() return self.w end
@@ -48,6 +68,7 @@ local function fakeFrame(kind,name,parent)
     function f:StartMoving() self.moving=true end
     function f:StopMovingOrSizing() self.moving=false end
     function f:Show()
+        self.explicitHidden=false
         if not self.shown then
             self.shown=true
             if self.scripts.OnShow then self.scripts.OnShow(self) end
@@ -55,6 +76,7 @@ local function fakeFrame(kind,name,parent)
         end
     end
     function f:Hide()
+        self.explicitHidden=true
         if self.shown then
             self.shown=false
             if self.scripts.OnHide then self.scripts.OnHide(self) end
@@ -71,7 +93,7 @@ local function fakeFrame(kind,name,parent)
             self.hideHooks[#self.hideHooks+1]=callback
         end
     end
-    function f:SetScrollChild(o) self.scrollChild=o end
+    function f:SetScrollChild(o) self.scrollChild=o;o:SetPoint("TOPLEFT",self,"TOPLEFT",0,0) end
     function f:SetText(s)
         self.text=s or ""
         if self.type=="EditBox" and self.scripts.OnTextChanged then
@@ -119,7 +141,7 @@ local function fakeFrame(kind,name,parent)
     return f
 end
 CreateFrame=fakeFrame
-UIParent=fakeFrame("Frame","UIParent")
+UIParent=fakeFrame("Frame","UIParent");UIParent:SetSize(1920,1080);UIParent:Show()
 Minimap=fakeFrame("Frame","Minimap",UIParent)
 Minimap:SetSize(140,140)
 local mouseX,mouseY=500,580
@@ -176,7 +198,7 @@ SetWhoToUI=function(v) nativeWhoUI=v end
 FriendsFrame=fakeFrame("Frame","FriendsFrame")
 FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
 FriendsFrame:Hide()
-local libs={"Core.lua","Locale.lua","Filters.lua","Hardcore.lua","Scanner.lua","Actions.lua","UI.lua","MinimapButton.lua"}
+local libs={"Core.lua","Locale.lua","Filters.lua","Hardcore.lua","Scanner.lua","Actions.lua","Docking.lua","UI.lua","MinimapButton.lua"}
 for _,f in ipairs(libs) do dofile(path.."/"..f) end
 local A=GR735
 A.driver.scripts.OnEvent(A.driver,"ADDON_LOADED","GuildRecruit735")
@@ -215,7 +237,7 @@ ok(A.ui.mini:IsShown(),"minimap left click opens panel")
 A.minimapButton.scripts.OnClick(A.minimapButton,"LeftButton")
 ok(not A.ui.mini:IsShown(),"minimap left click closes panel")
 A.minimapButton.scripts.OnClick(A.minimapButton,"RightButton")
-ok(A.ui.prefs:IsShown(),"minimap right click opens settings")
+ok(A.ui.prefs:IsShown(),"minimap right click opens settings");A:ToggleMini()
 ok(#invites==0 and #whispers==0,"minimap actions never contact anyone")
 local originalMini=A.minimapButton
 A:CreateMinimapButton()
@@ -247,11 +269,12 @@ SlashCmdList.GR735("")
 ok(A.ui.mini:IsShown(),"slash command opens mini")
 SlashCmdList.GR735("")
 ok(not A.ui.mini:IsShown(),"slash command closes mini")
-ok(A.ui.state:GetText()==A:T("Ожидание сканирования"),"initial state waiting in client locale")
+ok(A.ui.counter:GetText()==A:T("Всего: %d | Исключено: %d | Без гильдии: %d",0,0,0),"initial three counters in client locale")
 ok(A.ui.scanButton:GetText()==A:T("Сканирование"),"scan button in client locale")
-ok(A.ui.hcDropdown.menuWidth==259,"HC dropdown actual width")
-ok(A.ui.modeDropdown.menuWidth==259,"invite dropdown actual width")
+ok(A.ui.hcDropdown.menuWidth==295,"HC dropdown actual width")
+ok(A.ui.modeDropdown.menuWidth==295,"invite dropdown actual width")
 ok(#UISpecialFrames>=5,"Esc registers windows")
+A:OpenSettings()
 -- Private menu controls avoid Blizzard's shared dropdown taint state.
 ok(A.ui.hcDropdown.type=="Button" and A.ui.modeDropdown.type=="Button",
    "both selectors use private simple buttons, not shared Blizzard dropdowns")
@@ -358,8 +381,8 @@ A.ui.prefs:Hide();A:ShowSettings()
 -- The existing WHO regression below expects its own request log to start empty.
 requests={}
 
-ok(A.ui.mini:GetWidth()==455 and A.ui.mini:GetHeight()==118,"mini panel substantially reduced")
-ok(A.ui.showButton:GetWidth()==157 and A.ui.scanButton:GetWidth()==127 and
+ok(A.ui.mini:GetWidth()==455 and A.ui.mini:GetHeight()==114,"mini panel substantially reduced")
+ok(A.ui.showButton:GetWidth()==166 and A.ui.scanButton:GetWidth()==127 and
    A.ui.clearButton:GetWidth()==124,"three mini buttons fit compact panel")
 ok(A.ui.list.color[4]>=.95,"candidate list opaque")
 ok(A.ui.listTitle.fontSize==13 and A.ui.listCaption.fontSize==13,
@@ -783,4 +806,11 @@ GetLocale=function() return "deDE" end
 ok(A:Language()=="en","non-Russian client without translations falls back to English")
 GetLocale=activeLocale
 ok(A:Language()==expectedLanguage,"test restores original client locale")
+if arg[3] then
+    assert(loadfile(arg[3]))()(A,frames,ok)
+end
+if GR735_CAPTURE then GR735_CAPTURE(A,frames) end
 print("GR735 fixture PASS "..checks.." assertions")
+
+
+

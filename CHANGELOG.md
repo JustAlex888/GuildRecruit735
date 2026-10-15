@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 — GR735-20261015-04 — 2026-10-15
+
+Compact mini panel and docked settings/messages/filters; independent child toggles and family close; floating player list retained. Four visible name-filter rows with scrolling, twelve classes, six templates and draft retention. Original scan/HC/contact/filter model and SavedVariables retained. User accepted interface/filter behavior on the immediate 1.0.4-TEST parent. Final release changes only version/build metadata in the addon relative to that parent. Updated RU/EN documentation, current user-provided screenshot and docking regression tests. No code or asset dependency on Guild Control735.
+
+
 ## 1.0.2 — GR735-20261015-01 — 2026-10-15 — public stable release
 
 Canonical direct TEST parent `1.0.2-TEST / GR735-20261014-05`, install SHA-256 `3e401fe4be322b626c27ed8df2cfb17807f51a81d818cd16d1b6e9bc87a35620`, source SHA-256 `07e8fa0b4757854de674fd39dd097a3c23362209f774ca47e19ce4d270bb958c`; provenance `GR735_20261015_01_FROM_GR735_20261014_05_3e401fe4_RELEASE_1_0_2_METADATA_ONLY`. This stable release alters `Core.lua` only VERSION/BUILD and `.toc` release metadata; all 7 other gameplay Lua and MIT LICENSE are byte-identical to the exact candidate. Existing SavedVariables and profiles are kept.

@@ -3,6 +3,10 @@
 -- User-authored messages, filter values, character/guild names and server WHO names are NEVER translated.
 local A=GR735
 local EN={
+    ["Всего: %d | Исключено: %d | Без гильдии: %d"]="Total: %d | Excluded: %d | Guildless: %d",
+    ["Показать игроков"]="Show players",
+    ["Уровни:"]="Levels:",
+    ["World ID:"]="World ID:",
     ["Версия %s / %s"]="Version %s / %s",
     ["Смена гильдии"]="Guild changed",
     ["Остановлено вручную"]="Stopped manually",

@@ -1,0 +1,3 @@
+# Optional targeted regression
+
+Check `/gr735 version`, settings/messages/filters individual toggles, simultaneous children and settings/mini/Esc cascade. Move mini near screen edges with both docks open; independent player list retains position and scroll. Confirm saved10–90 after reload and next manual WHO; Clear keeps filters/templates/contacts. Check all12classes and names scroll past4rows, confirmed global removal/reset, all6template saves/UTF8 limits and HC-UNKNOWN confirmation. Only deliberately contact a consenting target. Preserve fresh BugGrabber evidence if a protected-frame error recurs. Do not treat absence of one error as proof of a taint root-cause fix.
