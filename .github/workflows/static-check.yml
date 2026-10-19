@@ -14,8 +14,8 @@ jobs:
         run: for file in GuildRecruit735/*.lua; do luac5.1 -p "$file"; done
       - name: Russian and English regression
         run: |
-          lua5.1 tests/test_runtime.lua GuildRecruit735 ru tests/test_docking.lua
-          lua5.1 tests/test_runtime.lua GuildRecruit735 en tests/test_docking.lua
+          lua5.1 tests/test_runtime.lua GuildRecruit735 ru tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
+          lua5.1 tests/test_runtime.lua GuildRecruit735 en tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
       - name: Verify deterministic packaging
         run: |
           python3 tools/build.py

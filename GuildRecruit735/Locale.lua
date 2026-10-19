@@ -146,6 +146,40 @@ local EN={
     ["Неизвестный язык. Используйте /gr735 lang ru|en|auto."]="Unknown language. Use /gr735 lang ru|en|auto.",
 }
 
+-- Selection/scan repair localization.
+EN["Назад"]="Previous"
+EN["Далее"]="Next"
+EN["Страница %d из %d"]="Page %d of %d"
+EN["Имена / миры"]="Names / worlds"
+EN["Имя или суффикс мира"]="Name or world suffix"
+EN["Исключение по миру: %s"]="World exclusion: %s"
+EN["Исключение по миру"]="World exclusion"
+EN["Введите суффикс мира: plusx7 или x7."]="Enter a world suffix: plusx7 or x7."
+EN["x7 и plusx7 исключают только этот мир; другой текст — часть имени. Новое правило выключено до нажатия на него."]="x7 and plusx7 exclude only that world; other text matches part of a name. New rules stay OFF until clicked."
+EN["Кандидатов: %d; на странице: %d. Все результаты доступны кнопками страниц."]="Candidates: %d; on page: %d. Use page buttons to reach all results."
+EN["Уже в гильдии"]="Already in a guild"
+EN["Вне диапазона уровней"]="Outside level range"
+EN["Исключённый класс"]="Excluded class"
+EN["Исключение"]="Exclusion rule"
+EN["Контакт за последние 30 дней"]="Contacted in the last 30 days"
+EN["HC-фильтр"]="HC filter"
+EN["Некорректные данные"]="Invalid data"
+EN["Подходит"]="Eligible"
+EN["Поиск не запущен"]="No scan started"
+EN["Ожидание HC-данных"]="Waiting for HC data"
+EN["Ожидание /who"]="Waiting for /who"
+EN["Неполный поиск"]="Incomplete scan"
+EN["Настройки изменены — запустите новый поиск"]="Settings changed: start a new scan"
+EN["Другой запрос /who — поиск остановлен"]="Another /who request: scan stopped"
+EN["Ответ /who не соответствует запросу — повторите поиск"]="WHO reply does not match the query: restart scan"
+EN["WHO: предел 5000 уникальных игроков"]="WHO: 5000 unique-player limit"
+EN["Некорректный диапазон уровней"]="Invalid level range"
+EN["Запросов: %d/120; уникальных игроков: %d; подходят: %d"]="Queries: %d/120; unique players: %d; eligible: %d"
+EN["Гильдия: %d; уровни: %d; классы: %d; правила: %d; контакты: %d; HC: %d"]="Guilded: %d; level: %d; class: %d; rules: %d; contacted: %d; HC: %d"
+EN["/gr735 why Имя — причина отбора. Снимок /who не подтверждает текущий онлайн."]="/gr735 why Name explains selection. A WHO snapshot does not confirm current online status."
+EN["Используйте /gr735 why Имя-плюс-мир"]="Use /gr735 why Name-world"
+EN["Игрок не получен в текущих ответах /who. Это не доказательство отсутствия игрока онлайн."]="Player not received in current WHO replies. This does not prove the player is offline."
+
 function A:Language()
     local pref=type(GR735DB)=="table" and GR735DB.language or "auto"
     if pref=="ru" or pref=="en" then return pref end

@@ -20,7 +20,7 @@ function A:CreateFilter(title,kind,needle)
     end
     local id = "f"..tostring(GR735DB.nextFilterId)
     GR735DB.nextFilterId = GR735DB.nextFilterId + 1
-    GR735DB.filters[#GR735DB.filters+1] = {id=id,title=title,kind=kind,needle=needle}
+    GR735DB.filters[#GR735DB.filters+1] = {id=id,title=title,kind=kind,needle=needle,match="explicit"}
     -- New filters are visible but OFF in every character/guild profile.
     self:RefreshUI()
     return true,id
@@ -37,6 +37,7 @@ function A:AddNameExclusion(needle)
             return false,"Такое исключение уже существует."
         end
     end
+    if self:WorldToken(needle)then return self:AddRealmExclusion(needle)end
     return self:CreateFilter("Исключение по имени","name",needle)
 end
 
@@ -45,6 +46,7 @@ local knownClasses={WARRIOR=true,PALADIN=true,HUNTER=true,ROGUE=true,PRIEST=true
 function A:SetClassExcluded(classFile,on)
     if not knownClasses[classFile] then return false end
     self:Profile().excludedClasses[classFile]=(on==true) or nil
+    if self.SelectionChanged then self:SelectionChanged()end
     self:RefreshUI()
     return true
 end
@@ -60,6 +62,7 @@ function A:ToggleFilter(id)
     if not self:GetFilter(id) then return false end
     local p = self:Profile()
     p.activeFilters[id] = not (p.activeFilters[id] == true)
+    if self.SelectionChanged then self:SelectionChanged()end
     self:RefreshUI()
     return p.activeFilters[id]
 end
@@ -71,6 +74,7 @@ function A:DeleteFilter(id)
             table.remove(GR735DB.filters,i)
             -- Other characters may retain inert IDs; monotonic IDs prevent accidental reuse.
             self:Profile().activeFilters[id] = nil
+            if self.SelectionChanged then self:SelectionChanged()end
             self:RefreshUI()
             return true
         end
@@ -87,8 +91,11 @@ function A:FilterHit(candidate)
     for _,f in ipairs(GR735DB.filters) do
         if enabled[f.id] == true then
             local value = candidate[f.kind] or ""
-            if f.kind == "realm" then
-                value = candidate.name or ""
+            if self:IsRealmFilter(f)then
+                local _,realm=self:SplitPlayerName(candidate.name)
+                realm=realm or self:CurrentRealmSuffix()
+                if realm and realm==self:NormalizeRealm(f.needle)then return f.title end
+                value=""
             end
             local filterValue = norm(f.needle)
             if filterValue ~= "" and norm(value):find(filterValue,1,true) then
@@ -97,4 +104,39 @@ function A:FilterHit(candidate)
         end
     end
     return nil
+end
+
+function A:WorldToken(text)
+ local s=norm(text):gsub("^%-","")
+ return s:match("^plusx%d+$")or s:match("^x%d+$")
+end
+function A:NormalizeRealm(text)
+ local s=norm(text):gsub("%s+",""):gsub("^%-","")
+ if s:match("^x%d+$")then s="plus"..s end
+ return s
+end
+function A:CurrentRealmSuffix()
+ local raw=self:Fold(GetRealmName and GetRealmName()or "")
+ local n=raw:match("plus%s*x(%d+)")or raw:match("legion%s*x(%d+)")
+ if n then return "plusx"..n end
+ local token=self:WorldToken(raw);if token then return self:NormalizeRealm(token)end
+ return nil -- Never infer a world from the numeric HC ID alone.
+end
+function A:SplitPlayerName(name)
+ local s=norm(name);local base,realm=s:match("^([^%-]+)%-(.+)$")
+ return base or s,realm and self:NormalizeRealm(realm)or nil
+end
+function A:CandidateKey(name)
+ local base,realm=self:SplitPlayerName(name)
+ realm=realm or self:CurrentRealmSuffix()
+ return realm and(base.."-"..realm)or base
+end
+function A:IsRealmFilter(f)
+ -- Old UI accepted x7/plusx7 as name rules for world exclusion. Interpret
+ -- only those exact legacy tokens as worlds, retaining IDs/activation/bytes.
+ return f.kind=="realm"or(f.kind=="name"and not f.match and self:WorldToken(f.needle)~=nil)
+end
+function A:AddRealmExclusion(needle)
+ if type(needle)~="string"or not self:WorldToken(needle)then return false,"Введите суффикс мира: plusx7 или x7."end
+ return self:CreateFilter("Исключение по миру","realm",self:NormalizeRealm(needle))
 end

@@ -1,0 +1,63 @@
+name: Publish GuildRecruit735 1.0.6
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'GuildRecruit735/Core.lua'
+      - '.github/workflows/publish-v1.0.6.yml'
+permissions:
+  contents: read
+concurrency:
+  group: publish-guildrecruit735-1.0.6
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Native regression and exact reproducible package
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in GuildRecruit735/*.lua; do luac5.1 -p "$file"; done
+          lua5.1 tests/test_runtime.lua GuildRecruit735 ru tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
+          lua5.1 tests/test_runtime.lua GuildRecruit735 en tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
+          python3 tools/build.py
+          python3 tools/validate.py
+          echo '039850dc1d81ab87f413f27bf78b88b53bd9155ef96e681be47eb40e2702174c  dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip' | sha256sum -c -
+          test "$(unzip -Z1 dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip | wc -l)" -eq 13
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-1.0.6-packages
+          path: dist/
+  publish:
+    needs: verify
+    if: github.repository == 'JustAlex888/GuildRecruit735'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-1.0.6-packages
+          path: dist/
+      - name: Publish new release without overwriting older tags or assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '039850dc1d81ab87f413f27bf78b88b53bd9155ef96e681be47eb40e2702174c  dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip' | sha256sum -c -
+          if gh release view v1.0.6 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v1.0.6 already exists; refusing to overwrite it.' >&2
+            exit 1
+          fi
+          gh release create v1.0.6 \
+            dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip \
+            dist/GuildRecruit735-1.0.6-GR735-20261019-01-SOURCE.zip \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'GuildRecruit735 1.0.6' \
+            --notes-file docs/RELEASE_NOTES_RU.md --prerelease --latest=false

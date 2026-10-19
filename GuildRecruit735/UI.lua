@@ -106,6 +106,7 @@ local function dropdown(parent,name,x,y,width,choices,property)
             A:Profile()[property]=value
             menu:Hide()
             A:UpdateSettings()
+            A:SelectionChanged()
         end)
         d.choiceButtons[i]=item
     end
@@ -142,7 +143,7 @@ function A:BuildUI()
     self.ui={}
     local U=self.ui
     -- Compact panel is initially HIDDEN. /gr735 shows/hides it deliberately.
-    local mini=panel("GR735MiniPanel",455,114)
+    local mini=panel("GR735MiniPanel",455,144)
     U.mini=mini;mini:SetPoint("CENTER",UIParent,"CENTER",0,125)
     U.clearButton=button(mini,"Очистить",124,25,14,-12,function()
         if A.scan.active then A:StopScan("Остановлено перед очисткой") end
@@ -153,25 +154,40 @@ function A:BuildUI()
     end)
     tip(U.clearButton,"Очищает результаты текущего сканирования, но не настройки и фильтры.")
     U.counter=label(mini,"",16,-46,423,"GameFontHighlightSmall")
-    U.settingsButton=button(mini,"Настройки",116,27,325,-76,function() A:ToggleSettings() end)
+    U.scanStatus=label(mini,"",16,-65,423,"GameFontHighlightSmall")
+    U.scanStatus:SetHeight(36);U.scanStatus:SetWordWrap(true)
+    local statusHit=CreateFrame("Frame",nil,mini);U.statusHit=statusHit
+    statusHit:SetPoint("TOPLEFT",mini,"TOPLEFT",14,-42);statusHit:SetSize(423,61);statusHit:EnableMouse(true)
+    statusHit:SetScript("OnEnter",function(o)
+        GameTooltip:SetOwner(o,"ANCHOR_RIGHT");GameTooltip:ClearLines();GameTooltip:AddLine(A:ScanDetailsText(),1,1,1,true);GameTooltip:Show()
+    end)
+    statusHit:SetScript("OnLeave",function()GameTooltip:Hide()end)
+    U.settingsButton=button(mini,"Настройки",116,27,325,-108,function() A:ToggleSettings() end)
     closeButton(mini)
-    U.scanButton=button(mini,"Сканирование",127,27,14,-76,function() A:StartScan() end)
-    U.showButton=button(mini,"Показать игроков",166,27,151,-76,function() A:ShowCandidates() end)
+    U.scanButton=button(mini,"Сканирование",127,27,14,-108,function() A:StartScan() end)
+    U.showButton=button(mini,"Показать игроков",166,27,151,-108,function() A:ShowCandidates() end)
     if U.showButton.GetFontString then growFont(U.showButton:GetFontString(),1) end
 
     -- Existing candidate list layout and safe manual click actions are preserved.
-    local list=panel("GR735CandidateList",608,330)
+    local list=panel("GR735CandidateList",608,420)
     U.list=list;list:SetPoint("CENTER",UIParent,"CENTER",0,0)
     U.listTitle=label(list,"Найденные игроки — выбирайте вручную",18,-17,535,"GameFontNormalLarge")
     growFont(U.listTitle,1)
-    closeButton(list)
+    U.listClose=closeButton(list)
     U.listCaption=label(list,"Массовых приглашений нет.",18,-45,544,"GameFontHighlightSmall")
     growFont(U.listCaption,1)
-    local scroll=CreateFrame("ScrollFrame",nil,list,"UIPanelScrollFrameTemplate")
+    local scroll=CreateFrame("ScrollFrame","GR735CandidateScroll",list)
     scroll:SetPoint("TOPLEFT",list,"TOPLEFT",17,-90);scroll:SetSize(555,225)
     local child=CreateFrame("Frame",nil,scroll)
     child:SetSize(526,225);scroll:SetScrollChild(child)
     U.scroll=scroll;U.rowsParent=child;U.rows={}
+    U.previousPage=button(list,"Назад",80,25,14,-10,function()A:ChangeCandidatePage(-1)end)
+    U.nextPage=button(list,"Далее",80,25,104,-10,function()A:ChangeCandidatePage(1)end)
+    U.pageLabel=label(list,"",194,-10,380,"GameFontHighlightSmall")
+    U.previousPage:ClearAllPoints();U.previousPage:SetPoint("BOTTOMLEFT",list,"BOTTOMLEFT",14,12)
+    U.nextPage:ClearAllPoints();U.nextPage:SetPoint("BOTTOMLEFT",list,"BOTTOMLEFT",104,12)
+    U.pageLabel:ClearAllPoints();U.pageLabel:SetPoint("BOTTOMLEFT",list,"BOTTOMLEFT",194,17)
+    self:InitializeCandidateWindow()
 
     local prefs=panel("GR735Preferences",548,300,mini)
     U.prefs=prefs
@@ -198,8 +214,10 @@ function A:BuildUI()
             return false
         end
         local p=A:Profile()
+        local changed=p.minLevel~=lo or p.maxLevel~=hi or p.realmId~=r
         if p.realmId~=r then A.liveRealmID=nil end
         p.minLevel=lo;p.maxLevel=hi;p.realmId=r
+        if changed then A:SelectionChanged()end
         if announce then
             A:UpdateSettings()
             A:Message("Настройки поиска сохранены для этого персонажа и гильдии.")
@@ -246,12 +264,12 @@ function A:BuildUI()
     closeButton(filters)
 
     U.filterTab="names"
-    U.namesTab=button(filters,"Имена",222,29,18,-52,function() U.filterTab="names";A:UpdateFilters() end)
+    U.namesTab=button(filters,"Имена / миры",222,29,18,-52,function() U.filterTab="names";A:UpdateFilters() end)
     U.classesTab=button(filters,"Классы",222,29,258,-52,function() U.filterTab="classes";A:UpdateFilters() end)
     local namesArea=CreateFrame("Frame",nil,filters)
     namesArea:SetSize(500,240);namesArea:SetPoint("TOPLEFT",filters,"TOPLEFT",0,0)
     U.namesArea=namesArea
-    label(namesArea,"Исключение по имени",22,-94,290)
+    label(namesArea,"Имя или суффикс мира",22,-94,290)
     U.nameExclusion=input(namesArea,326,22,-118,64)
     U.addName=button(namesArea,"Добавить",116,27,364,-118,function()
         local ok,why=A:AddNameExclusion(U.nameExclusion:GetText())
@@ -261,6 +279,7 @@ function A:BuildUI()
             A:UpdateFilters()
         else A:Message(why) end
     end)
+    tip(U.addName,"x7 и plusx7 исключают только этот мир; другой текст — часть имени. Новое правило выключено до нажатия на него.")
     local fscroll=CreateFrame("ScrollFrame",nil,namesArea,"UIPanelScrollFrameTemplate")
     fscroll:SetPoint("TOPLEFT",namesArea,"TOPLEFT",18,-158)
     fscroll:SetSize(444,32)
@@ -396,6 +415,8 @@ function A:UpdateMini()
     local U=self.ui;if not U then return end
     local s=self.scan
     local stats=s.stats or {}
+    self:RebuildCandidates()
+    U.scanStatus:SetText(self:ScanStatusText())
     U.counter:SetText(self:T("Всего: %d | Исключено: %d | Без гильдии: %d",
         stats.rows or 0,(stats.filtered or 0)+(stats.hardcore or 0),stats.unguilded or 0))
     U.showButton:SetText(self:T("Показать игроков"))
@@ -404,15 +425,27 @@ end
 
 function A:UpdateCandidates()
     local U=self.ui;if not U then return end
-    local total=math.min(#self.candidates,30)
-    U.listCaption:SetText(self:T("Кандидатов: %d; показаны первые %d. ЛКМ — выбранное действие, массового приглашения нет.",
+    if U.candidateLayoutBusy then return end
+    U.candidateLayoutBusy=true
+    self:RebuildCandidates()
+    local pages=math.max(1,math.ceil(#self.candidates/30))
+    self.candidatePage=math.max(1,math.min(pages,self.candidatePage or 1))
+    local offset=(self.candidatePage-1)*30
+    local total=math.min(math.max(0,#self.candidates-offset),30)
+    U.pageLabel:SetText(self:T("Страница %d из %d",self.candidatePage,pages))
+    U.previousPage:SetEnabled(self.candidatePage>1);U.nextPage:SetEnabled(self.candidatePage<pages)
+    U.listCaption:SetText(self:T("Кандидатов: %d; на странице: %d. Все результаты доступны кнопками страниц.",
         #self.candidates,total))
+    self:LayoutCandidateWindow()
+    local rowWidth=U.rowsParent:GetWidth()-10
     local y=0
     for i=1,math.max(total,#U.rows) do
         local line=U.rows[i]
         if not line and i<=total then
             line=CreateFrame("Button",nil,U.rowsParent)
-            line:SetWidth(505);line:SetHeight(32);line:RegisterForClicks("LeftButtonUp")
+            line:SetHeight(32);line:RegisterForClicks("LeftButtonUp")
+            line:EnableMouseWheel(true)
+            line:SetScript("OnMouseWheel",function(_,delta) A:ScrollCandidatesBy(-delta) end)
             line.text=line:CreateFontString(nil,"OVERLAY","GameFontHighlight")
             growFont(line.text,2)
             line.text:SetPoint("TOPLEFT",line,"TOPLEFT",7,-4)
@@ -434,12 +467,13 @@ function A:UpdateCandidates()
         end
         if line then
             if i<=total then
-                local p=self.candidates[i]
+                local p=self.candidates[offset+i]
                 local status=p.hc=="MATCH" and " [HC]" or ""
                 local rgb=classColorEscape(p.classFile)
                 -- Apply the SAME correct class color to name and class.
                 -- Level/race remain neutral; p.name itself is untouched for invites.
-                line.text:SetText(i..". "..rgb..p.name.."|r, "..self:T("ур.").." "..tostring(p.level)..
+                line:SetWidth(rowWidth);line.text:SetWidth(rowWidth-14)
+                line.text:SetText((offset+i)..". "..rgb..p.name.."|r, "..self:T("ур.").." "..tostring(p.level)..
                     " "..p.race.." "..rgb..p.class.."|r"..status)
                 local rowH=math.max(27,math.ceil(line.text:GetStringHeight()+12))
                 line:SetHeight(rowH);line:ClearAllPoints()
@@ -450,9 +484,9 @@ function A:UpdateCandidates()
             end
         end
     end
-    U.rowsParent:SetHeight(math.max(225,y+15))
-    U.list:SetHeight(math.max(175,math.min(600,146+math.min(440,math.max(62,y+16)))))
-    U.scroll:SetHeight(math.max(62,math.min(440,y+16)))
+    U.rowsParent:SetHeight(math.max(U.scroll:GetHeight(),y+15))
+    U.candidateLayoutBusy=false
+    self:UpdateCandidateScrollRange()
 end
 
 function A:UpdateFilters()
@@ -479,7 +513,8 @@ function A:UpdateFilters()
         if b then
             if i<=#list then
                 local f=list[i]
-                local desc=(f.kind=="name") and self:T("Исключение по имени: %s",f.needle) or
+                local desc=self:IsRealmFilter(f)and self:T("Исключение по миру: %s",self:NormalizeRealm(f.needle))or
+                    (f.kind=="name") and self:T("Исключение по имени: %s",f.needle) or
                     (self:T(OLD_TYPES[f.kind] or "Старый фильтр")..": "..f.needle)
                 b.filterId=f.id
                 b:SetText((enabled[f.id] and ("|cff54eb5a"..self:T("[ВКЛ]").."|r ") or
@@ -567,3 +602,9 @@ end
 function A:ShowSettings() self:OpenSettings() end
 function A:ShowFilterWindow() self:ToggleDock("filters") end
 function A:ShowMessages() self:ToggleDock("messages") end
+
+function A:ChangeCandidatePage(delta)
+    local pages=math.max(1,math.ceil(#self.candidates/30))
+    self.candidatePage=math.max(1,math.min(pages,(self.candidatePage or 1)+delta))
+    self:SetCandidateScroll(0);self:UpdateCandidates()
+end

@@ -33,9 +33,17 @@ function A:ValidateTemplate(raw)
 end
 
 function A:RecentContact(person)
-    local last=self:Profile().contacts[self:Fold(person.name)]
-    if type(last)=="number" and self:WallClock()>0 then
-        return self:WallClock()-last < COOLDOWN_SECONDS
+    local contacts=self:Profile().contacts
+    local base,realm=self:SplitPlayerName(person.name)
+    local current=self:CurrentRealmSuffix()
+    local keys={self:Fold(person.name),self:CandidateKey(person.name)}
+    if not realm or realm==current then
+        keys[#keys+1]=base
+        if current then keys[#keys+1]=base.."-"..current end
+    end
+    for _,key in ipairs(keys)do
+      local last=contacts[key]
+      if type(last)=="number"and self:WallClock()>0 and self:WallClock()-last<COOLDOWN_SECONDS then return true end
     end
     return false
 end
@@ -54,7 +62,8 @@ end
 
 function A:DoContact(person)
     if not person or not self.candidateByName[self:Fold(person.name)] then return false end
-    if self:FilterHit(person) or not self:AllowsHC(person) then
+    local reason=self:CandidateReason(person)
+    if reason and reason~="contact"then
         self:Message("Кандидат больше не соответствует фильтрам.")
         return false
     end

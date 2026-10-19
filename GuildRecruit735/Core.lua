@@ -1,8 +1,8 @@
 -- GuildRecruit735. Original implementation. MIT License.
 -- Target: WoW Legion 7.3.5 / Interface 70300. No SuperGuildInvite code.
 GR735 = {
-    VERSION = "1.0.4",
-    BUILD = "GR735-20261015-04",
+    VERSION = "1.0.6",
+    BUILD = "GR735-20261019-01",
     currentProfile = nil,
     currentGuildKey = nil,
     selected = {},
@@ -95,6 +95,7 @@ function A:HasInvitePermission()
 end
 
 function A:RefreshUI()
+    if self.RebuildCandidates then self:RebuildCandidates()end
     if self.UpdateMini then self:UpdateMini() end
     if self.UpdateCandidates then self:UpdateCandidates() end
     if self.UpdateFilters then self:UpdateFilters() end
@@ -102,6 +103,7 @@ function A:RefreshUI()
 end
 
 function A:ClearCandidates()
+    self.scan.records=nil;self.scan.recordIndex=nil;self.candidatePage=1
     self.candidates = {}
     self.candidateByName = {}
     self:RefreshUI()
@@ -122,7 +124,7 @@ function A:Info()
     self:Message(self:T("Версия %s / %s",self.VERSION,self.BUILD))
 end
 
--- All event routing is ours; no hooks on other add-ons, guild notes, or UWoW client code.
+-- Passive secure SendWho observer detects overlapping native queries; no function replacement.
 local driver = CreateFrame("Frame", "GR735EventDriver")
 A.driver = driver
 driver:RegisterEvent("ADDON_LOADED")
@@ -164,6 +166,8 @@ SlashCmdList["GR735"] = function(msg)
     if msg == "version" then A:Info()
     elseif msg == "scan" then if A.StartScan then A:StartScan() end
     elseif msg == "stop" then if A.StopScan then A:StopScan("Остановлено вручную") end
+    elseif msg:match("^why%s+")then A:ExplainCandidate(msg:match("^why%s+(.+)$"))
+    elseif msg == "status"then A:Message(A:ScanStatusText());A:Message(A:ScanDetailsText())
     elseif msg == "hc" then if A.LadderStatus then A:LadderStatus() end
     elseif msg == "filters" then if A.ShowFilterWindow then A:ShowFilterWindow() end
     elseif msg == "messages" then if A.ShowMessages then A:ShowMessages() end

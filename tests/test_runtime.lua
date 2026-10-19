@@ -22,13 +22,17 @@ local frames={}
 local function fakeFrame(kind,name,parent)
     local f={type=kind,name=name,parent=parent,w=0,h=0,shown=false,scripts={}}
     function f:RegisterEvent(e) self[e]=true end
+    function f:SetEnabled(value)self.disabled=not value end
     function f:UnregisterEvent(e) self[e]=nil end
     function f:IsEventRegistered(e) return self[e]==true end
     function f:RegisterForDrag(...) self.drags={...} end
     function f:RegisterForClicks(...) self.clicks={...} end
     function f:SetScript(e,func) self.scripts[e]=func end
     function f:GetScript(e) return self.scripts[e] end
-    function f:SetSize(w,h) self.w=w;self.h=h end
+    function f:SetSize(w,h)
+        local changed=self.w~=w or self.h~=h;self.w=w;self.h=h
+        if changed and self.scripts.OnSizeChanged then self.scripts.OnSizeChanged(self,w,h) end
+    end
     function f:SetFrameStrata(strata) self.strata=strata end
     function f:SetFrameLevel(level) self.frameLevel=level end
     function f:GetFrameLevel() return self.frameLevel or 1 end
@@ -54,9 +58,9 @@ local function fakeFrame(kind,name,parent)
     function f:GetLeft() local l=self:Bounds();return l/self:GetEffectiveScale() end
     function f:GetTop() local _,_,_,t=self:Bounds();return t/self:GetEffectiveScale() end
     function f:GetCenter() return self.centerX or 500,self.centerY or 500 end
-    function f:SetWidth(w) self.w=w end
+    function f:SetWidth(w) self:SetSize(w,self.h) end
     function f:GetWidth() return self.w end
-    function f:SetHeight(h) self.h=h end
+    function f:SetHeight(h) self:SetSize(self.w,h) end
     function f:GetHeight() return self.h end
     function f:SetPoint(...) self.point={...} end
     function f:ClearAllPoints() self.point=nil end
@@ -66,7 +70,35 @@ local function fakeFrame(kind,name,parent)
     function f:SetMovable(v) self.movable=v end
     function f:EnableMouse(v) self.mouse=v end
     function f:StartMoving() self.moving=true end
-    function f:StopMovingOrSizing() self.moving=false end
+    function f:StopMovingOrSizing() self.moving=false;self.sizing=nil end
+    function f:SetResizable(v) self.resizable=v end
+    function f:SetMinResize(w,h) self.minW=w;self.minH=h end
+    function f:SetMaxResize(w,h) self.maxW=w;self.maxH=h end
+    function f:StartSizing(edge) self.sizing=edge end
+    function f:EnableMouseWheel(v) self.mousewheel=v end
+    function f:Enable() self.disabled=false end
+    function f:Disable() self.disabled=true end
+    function f:IsEnabled() return not self.disabled end
+    function f:SetNormalTexture(v) self.normalTexture=v end
+    function f:SetPushedTexture(v) self.pushedTexture=v end
+    function f:SetDisabledTexture(v) self.disabledTexture=v end
+    function f:SetOrientation(v) self.orientation=v end
+    function f:SetThumbTexture(v) self.thumb=fakeFrame("Texture",nil,self);self.thumb:SetTexture(v) end
+    function f:GetThumbTexture() return self.thumb end
+    function f:SetValueStep(v) self.step=v end
+    function f:SetMinMaxValues(lo,hi)
+        self.minValue=lo;self.maxValue=hi
+        if self.value then self:SetValue(self.value) end
+    end
+    function f:GetMinMaxValues() return self.minValue or 0,self.maxValue or 0 end
+    function f:SetValue(v)
+        v=math.max(self.minValue or 0,math.min(self.maxValue or 0,v))
+        if v~=self.value then
+            self.value=v
+            if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end
+        end
+    end
+    function f:GetValue() return self.value or 0 end
     function f:Show()
         self.explicitHidden=false
         if not self.shown then
@@ -128,7 +160,10 @@ local function fakeFrame(kind,name,parent)
     function f:SetFocus() self.focused=true end
     function f:ClearFocus() self.focused=false end
     function f:HasFocus() return self.focused==true end
-    function f:SetVerticalScroll(v) self.verticalScroll=v end
+    function f:SetVerticalScroll(v)
+        self.verticalScroll=v
+        if self.scripts.OnVerticalScroll then self.scripts.OnVerticalScroll(self,v) end
+    end
     function f:GetVerticalScroll() return self.verticalScroll or 0 end
     function f:GetStringHeight()
         local s=(self.text or ""):gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r","")
@@ -198,7 +233,7 @@ SetWhoToUI=function(v) nativeWhoUI=v end
 FriendsFrame=fakeFrame("Frame","FriendsFrame")
 FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
 FriendsFrame:Hide()
-local libs={"Core.lua","Locale.lua","Filters.lua","Hardcore.lua","Scanner.lua","Actions.lua","Docking.lua","UI.lua","MinimapButton.lua"}
+local libs={"Core.lua","Locale.lua","Filters.lua","Hardcore.lua","Selection.lua","Scanner.lua","Actions.lua","Docking.lua","CandidateWindow.lua","UI.lua","MinimapButton.lua"}
 for _,f in ipairs(libs) do dofile(path.."/"..f) end
 local A=GR735
 A.driver.scripts.OnEvent(A.driver,"ADDON_LOADED","GuildRecruit735")
@@ -381,7 +416,7 @@ A.ui.prefs:Hide();A:ShowSettings()
 -- The existing WHO regression below expects its own request log to start empty.
 requests={}
 
-ok(A.ui.mini:GetWidth()==455 and A.ui.mini:GetHeight()==114,"mini panel substantially reduced")
+ok(A.ui.mini:GetWidth()==455 and A.ui.mini:GetHeight()==144,"mini panel substantially reduced")
 ok(A.ui.showButton:GetWidth()==166 and A.ui.scanButton:GetWidth()==127 and
    A.ui.clearButton:GetWidth()==124,"three mini buttons fit compact panel")
 ok(A.ui.list.color[4]>=.95,"candidate list opaque")
@@ -506,6 +541,7 @@ ok(GameTooltip.visible and GameTooltip.lines[2] and
    GameTooltip.lines[2]:find(A:T("Hardcore: статус неизвестен. При выборе в режиме исключения HC потребуется подтверждение."),1,true),"unknown HC explained via tooltip")
 A.ui.rows[1].scripts.OnLeave(A.ui.rows[1])
 ok(not GameTooltip.visible,"candidate tooltip closes")
+local contactCandidate=A.candidates[1]
 -- Unknown status requires another explicit click on confirmation.
 A.ui.rows[1].scripts.OnClick(A.ui.rows[1],"LeftButton")
 ok(#invites==0 and #popups>=2,"unknown HC asks confirmation, no instant invite")
@@ -513,43 +549,43 @@ local confirm=popups[#popups]
 ok(confirm.which=="GR735_CONFIRM_UNKNOWN","unknown popup is distinct")
 StaticPopupDialogs[confirm.which].OnAccept(nil,confirm.data)
 ok(#invites==1 and invites[1]=="UnknownNormal","manual click confirms invite")
-ok(A:RecentContact(A.candidates[1]),"30-day contact cooldown")
-ok(not A:DoContact(A.candidates[1]),"repeat contact blocked")
+ok(A:RecentContact(contactCandidate),"30-day contact cooldown")
+ok(not A:DoContact(contactCandidate),"repeat contact blocked")
 -- New requested workflow: WHISPER first then immediate invitation in ONE manual action.
 A:ConfirmResetContacts()
 local reset=popups[#popups]
 ok(reset.which=="GR735_RESET_CONTACTS","contact history reset requires confirmation")
-ok(A:RecentContact(A.candidates[1]),"opening reset popup does not erase cooldown")
+ok(A:RecentContact(contactCandidate),"opening reset popup does not erase cooldown")
 StaticPopupDialogs[reset.which].OnAccept(nil)
-ok(not A:RecentContact(A.candidates[1]),"confirmed cooldown reset only affects current profile")
+ok(not A:RecentContact(contactCandidate),"confirmed cooldown reset only affects current profile")
 A:Profile().inviteMode="invite_whisper"
 A:Profile().templates[1]="Привет, {player}! Мы из {guild}."
 A:Profile().selectedTemplate=1
-ok(A:DoContact(A.candidates[1]),"combined contact action succeeds")
+ok(A:DoContact(contactCandidate),"combined contact action succeeds")
 ok(#whispers==1 and #invites==2,"whisper and guild invitation both attempted")
 ok(outbound[#outbound-1]=="whisper" and outbound[#outbound]=="invite",
    "whisper definitely called BEFORE GuildInvite on single manual click")
 ok(whispers[1].text:find("UnknownNormal",1,true)~=nil,"template inserted player name")
 ok(whispers[1].text:find("Тестовая Гильдия",1,true)~=nil,"template inserted current guild")
-ok(A:RecentContact(A.candidates[1]),"combined attempt sets cooldown once")
-ok(not A:DoContact(A.candidates[1]),"repeat combined contact is blocked")
+ok(A:RecentContact(contactCandidate),"combined attempt sets cooldown once")
+ok(not A:DoContact(contactCandidate),"repeat combined contact is blocked")
 A:ResetContacts()
 local inviteCount,whisperCount=#invites,#whispers
 local canInvite=CanGuildInvite
 CanGuildInvite=function() return false end
-ok(not A:DoContact(A.candidates[1]),"no invitation rights blocks mixed action")
+ok(not A:DoContact(contactCandidate),"no invitation rights blocks mixed action")
 ok(#invites==inviteCount and #whispers==whisperCount,
    "no invitation rights also blocks whisper BEFORE it starts")
 CanGuildInvite=canInvite
 -- A protected-call failure must not turn into a real invitation.
 local originalSend=SendChatMessage
 SendChatMessage=function() error("simulated local send failure") end
-ok(not A:DoContact(A.candidates[1]),"local whisper failure aborts combined action")
+ok(not A:DoContact(contactCandidate),"local whisper failure aborts combined action")
 ok(#invites==inviteCount and #whispers==whisperCount,
    "failed whisper means no invitation and no outgoing whisper")
-ok(not A:RecentContact(A.candidates[1]),"failed whisper does not poison history")
+ok(not A:RecentContact(contactCandidate),"failed whisper does not poison history")
 SendChatMessage=originalSend
-ok(A:DoContact(A.candidates[1]),"second controlled contact without system acknowledgement")
+ok(A:DoContact(contactCandidate),"second controlled contact without system acknowledgement")
 ok(#whispers==2 and #invites==3,"combined mode never waits for localized system text")
 -- Confirmed test reset does not alter templates / filter state or world ID.
 A:ResetContacts()
@@ -573,7 +609,7 @@ A:ResetContacts()
 A:Profile().contacts={}
 A:Profile().templates[1]=""
 A:Profile().inviteMode="whisper"
-ok(not A:DoContact(A.candidates[1]),"empty template safely blocked")
+ok(not A:DoContact(contactCandidate),"empty template safely blocked")
 ok(#whispers==2,"no empty whisper sent")
 -- UTF-8 byte limit and final expanded-message limit; spaces count as characters.
 ok(A:UTF8Length("Привет мир!")==11,"Cyrillic and space count as characters")
@@ -583,16 +619,16 @@ local templateOK,templateWhy=A:ValidateTemplate(tooLong)
 ok(not templateOK and templateWhy:find("255",1,true),"template rejects 256 UTF-8 bytes without truncating")
 ok(A:ValidateTemplate(string.rep("Я",127)),"254 byte Cyrillic template is permitted")
 A:Profile().templates[1]="Привет, {player}!\nДобро пожаловать в {guild}."
-local body=A:TemplateText(A.candidates[1])
+local body=A:TemplateText(contactCandidate)
 ok(body and not body:find("\n",1,true) and body:find(" Привет",1,true)==nil,
     "message newlines normalized into one outgoing whisper")
 ok(body and body:find("UnknownNormal",1,true) and body:find("Тестовая Гильдия",1,true),
     "template variables expanded in final message")
 A:Profile().templates[1]=string.rep("Я",124).."{player}"
-local rejected,why=A:TemplateText(A.candidates[1])
+local rejected,why=A:TemplateText(contactCandidate)
 ok(rejected==nil and why:find("255",1,true),"expanded variable length rejected")
 A:Profile().contacts={}
-ok(not A:DoContact(A.candidates[1]),"overlong expanded whisper cannot send")
+ok(not A:DoContact(contactCandidate),"overlong expanded whisper cannot send")
 ok(#whispers==2 and #invites==3,"overlong text leaves all outgoing actions untouched")
 A:Profile().templates[1]=""
 A:ShowMessages()
@@ -809,6 +845,8 @@ ok(A:Language()==expectedLanguage,"test restores original client locale")
 if arg[3] then
     assert(loadfile(arg[3]))()(A,frames,ok)
 end
+if arg[4] then assert(loadfile(arg[4]))()(A,frames,ok) end
+if arg[5] then assert(loadfile(arg[5]))()(A,frames,ok,function(seconds)now=now+seconds end)end
 if GR735_CAPTURE then GR735_CAPTURE(A,frames) end
 print("GR735 fixture PASS "..checks.." assertions")
 

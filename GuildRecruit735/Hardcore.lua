@@ -54,13 +54,25 @@ function A:IsLadderMatch(name)
     if type(name) ~= "string" or name == "" then return false end
     local cache = finalCache()
     if not cache.complete or cache.realm ~= self:RealmID() then return false end
-    local search = self:Fold(name)
-    for _,r in ipairs(cache.rows) do
-        if self:Fold(r.name)==search and r.realm==cache.realm and r.level<110 then
-            return true
+    local base,suffix=self:SplitPlayerName(name)
+    local current=self:CurrentRealmSuffix()
+    -- Server cache generations are replaced atomically by OnLadderMessage.
+    -- Index once per generation instead of rescanning200 rows for every WHO row.
+    if self.hcIndexCache~=cache or self.hcIndexRows~=cache.rows or self.hcIndexCount~=#cache.rows then
+        local bare,qualified={},{}
+        for _,r in ipairs(cache.rows)do
+            if r.realm==cache.realm and r.level<110 then
+                local other,world=self:SplitPlayerName(r.name)
+                if world then qualified[other.."-"..world]=true else bare[other]=true end
+            end
         end
+        self.hcIndexCache=cache;self.hcIndexRows=cache.rows;self.hcIndexCount=#cache.rows
+        self.hcIndexBare=bare;self.hcIndexQualified=qualified
     end
-    return false
+    if suffix then
+        return self.hcIndexQualified[base.."-"..suffix]==true or(current~=nil and suffix==current and self.hcIndexBare[base]==true)
+    end
+    return self.hcIndexBare[base]==true or(current~=nil and self.hcIndexQualified[base.."-"..current]==true)
 end
 
 function A:CandidateHC(candidate)

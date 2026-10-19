@@ -31,10 +31,11 @@ return function(A,frames,ok)
     A:ShowCandidates();U.scroll:SetVerticalScroll(19)
     U.list:SetPoint("TOPLEFT",UIParent,"TOPLEFT",60,-60)
     local listPoint=U.list.point
+    local listOffset=U.scroll:GetVerticalScroll()
     local candidates=A.candidates
     click(U.settingsButton);family(false,false,false)
     click(U.settingsButton);family(true,false,false)
-    ok(U.list:IsShown() and U.scroll:GetVerticalScroll()==19 and U.list.point==listPoint and A.candidates==candidates,
+    ok(U.list:IsShown() and U.scroll:GetVerticalScroll()==listOffset and U.list.point==listPoint and A.candidates==candidates,
         "settings lifecycle preserves floating list, scroll and results")
     click(U.messagesButton);click(U.filtersButton);close(U.mini);family(false,false,false)
     ok(U.list:IsShown(),"mini X leaves independent player list")

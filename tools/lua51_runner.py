@@ -22,7 +22,10 @@ def compile_all(addon):
 def execute_fixture(root,loc,dock):
     root=Path(root).resolve()
     args={1:(root/'GuildRecruit735').as_posix(),2:loc}
-    if dock: args[3]=(root/'tests/test_docking.lua').as_posix()
+    if dock:
+        args[3]=(root/'tests/test_docking.lua').as_posix()
+        args[4]=(root/'tests/test_candidates.lua').as_posix()
+        args[5]=(root/'tests/test_selection.lua').as_posix()
     runtime=shutil.which('lua5.1')
     if runtime:
         p=subprocess.run([runtime,str(root/'tests/test_runtime.lua')]+list(args.values()),capture_output=True,text=True,encoding='utf-8')
