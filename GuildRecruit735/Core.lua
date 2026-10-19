@@ -1,8 +1,8 @@
 -- GuildRecruit735. Original implementation. MIT License.
 -- Target: WoW Legion 7.3.5 / Interface 70300. No SuperGuildInvite code.
 GR735 = {
-    VERSION = "1.0.6",
-    BUILD = "GR735-20261019-01",
+    VERSION = "1.0.7",
+    BUILD = "GR735-20261019-02",
     currentProfile = nil,
     currentGuildKey = nil,
     selected = {},

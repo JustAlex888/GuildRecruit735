@@ -6,8 +6,8 @@ import subprocess,shutil,json,hashlib,re,sys
 ROOT=Path(__file__).resolve().parents[1]
 ADDON=ROOT/"GuildRecruit735"
 DIST=ROOT/"dist"
-BUILD="GR735-20261019-01"
-VERSION="1.0.6"
+BUILD="GR735-20261019-02"
+VERSION="1.0.7"
 INSTALL=DIST/f"GuildRecruit735-{VERSION}-{BUILD}.zip"
 SOURCE=DIST/f"GuildRecruit735-{VERSION}-{BUILD}-SOURCE.zip"
 passed=[]
@@ -28,7 +28,7 @@ with ZipFile(INSTALL) as z:
     paths=[x.strip() for x in toc.splitlines() if x.strip() and not x.lstrip().startswith("#")]
     must("TOC references exist",len(paths)==11 and all("GuildRecruit735/"+x in files for x in paths))
     must("Interface / version / build",all(x in toc for x in
-       ["## Interface: 70300","## Version: 1.0.6","## X-Build: GR735-20261019-01",
+       ["## Interface: 70300","## Version: 1.0.7","## X-Build: GR735-20261019-02",
         "## SavedVariables: GR735DB","## SavedVariablesPerCharacter: GR735CharDB"]))
     src="".join(v.decode("utf-8-sig") for k,v in files.items() if k.endswith(".lua"))
     must("no borrowed SGI globals",not re.search(r"\bSGI_|(?:LibWho|GuildShield|SGI_DATA|SGI_BACKUP|SGI_HC_Diagnostic)\b",src))
@@ -63,7 +63,7 @@ with ZipFile(INSTALL) as z:
     must("WHO event isolation and restoration", "suspendedFriendsFrame" in src and "IsEventRegistered" in src and "restoreWhoUI" in src)
     must("WHO unique-row exclusion counters", "stats.unguilded" in src and "stats.filtered" in src and "stats.reasons" in src)
     must("contact-history exclusion in WHO candidate acceptance",
-         'self:CandidateReason(person)' in files["GuildRecruit735/Selection.lua"].decode("utf-8"))
+         'self:CandidateReason(person)' in files["GuildRecruit735/Scanner.lua"].decode("utf-8"))
     must("level controls auto-commit valid user changes",
          'field:SetScript("OnTextChanged",function(_,userInput)' in src and
          'if userInput then commitSearchPreferences(false) end' in src)

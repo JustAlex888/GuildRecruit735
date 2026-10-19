@@ -6,8 +6,8 @@ import hashlib, json, re
 ROOT=Path(__file__).resolve().parents[1]
 ADDON=ROOT/"GuildRecruit735"
 DIST=ROOT/"dist"
-VERSION="1.0.6"
-BUILD="GR735-20261019-01"
+VERSION="1.0.7"
+BUILD="GR735-20261019-02"
 NAME=f"GuildRecruit735-{VERSION}-{BUILD}"
 STAMP=(2026,10,19,0,0,0)
 
@@ -39,11 +39,11 @@ def main():
     source_zip=buildzip(DIST/(NAME+"-SOURCE.zip"),source)
     manifest={
        "product":"GuildRecruit735","version":VERSION,"build":BUILD,
-       "provenance":"GR735_20261019_01_FROM_GR735_20261016_01_624253de_SCAN_SELECTION_REPAIR",
-       "baseline":"OWN_1_0_5_GR735-20261016-01",
-       "parent_install":{"version":"1.0.5","build":"GR735-20261016-01",
-         "sha256":"624253de8aa7e84bea36c0a554b68a335ba3ccd9b5f9eb29632ecc61ce76da54"},
-       "parent_source_sha256":"242ff8cd8338b8a2cc174fe7529d8f540ac2e41f7254cbf3c0c060e8c7782306",
+       "provenance":"GR735_20261019_02_FROM_106_039850dc_MODULE_LOAD_HOTFIX",
+       "baseline":"OWN_1_0_6_GR735-20261019-01",
+       "parent_install":{"version":"1.0.6","build":"GR735-20261019-01",
+         "sha256":"039850dc1d81ab87f413f27bf78b88b53bd9155ef96e681be47eb40e2702174c"},
+       "parent_source_sha256":"d189c2ba7e9cc530cab6601f0fade1518d47fce041c47441ce3292df2a4e9ecd",
        "user_install":user,"source_archive":source_zip,
        "install_files":{p.relative_to(ROOT).as_posix():h(p.read_bytes()) for p in sorted(install)},
        "status":"PRERELEASE / STATIC_VERIFIED / READY_FOR_GAME_TEST",

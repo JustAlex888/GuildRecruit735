@@ -1,14 +1,14 @@
-name: Publish GuildRecruit735 1.0.6
+name: Publish GuildRecruit735 1.0.7
 on:
   push:
     branches: [main]
     paths:
       - 'GuildRecruit735/Core.lua'
-      - '.github/workflows/publish-v1.0.6.yml'
+      - '.github/workflows/publish-v1.0.7.yml'
 permissions:
   contents: read
 concurrency:
-  group: publish-guildrecruit735-1.0.6
+  group: publish-guildrecruit735-1.0.7
   cancel-in-progress: false
 jobs:
   verify:
@@ -24,13 +24,15 @@ jobs:
           for file in GuildRecruit735/*.lua; do luac5.1 -p "$file"; done
           lua5.1 tests/test_runtime.lua GuildRecruit735 ru tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
           lua5.1 tests/test_runtime.lua GuildRecruit735 en tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua
+          lua5.1 tests/test_runtime.lua GuildRecruit735 ru tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua legacy-toc
+          lua5.1 tests/test_runtime.lua GuildRecruit735 en tests/test_docking.lua tests/test_candidates.lua tests/test_selection.lua legacy-toc
           python3 tools/build.py
           python3 tools/validate.py
-          echo '039850dc1d81ab87f413f27bf78b88b53bd9155ef96e681be47eb40e2702174c  dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip' | sha256sum -c -
-          test "$(unzip -Z1 dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip | wc -l)" -eq 13
+          echo '67f05cff8fabf176242d3ba8302be8f0d56355c424fb48c6eb791d9f53ed46b1  dist/GuildRecruit735-1.0.7-GR735-20261019-02.zip' | sha256sum -c -
+          test "$(unzip -Z1 dist/GuildRecruit735-1.0.7-GR735-20261019-02.zip | wc -l)" -eq 13
       - uses: actions/upload-artifact@v4
         with:
-          name: verified-1.0.6-packages
+          name: verified-1.0.7-packages
           path: dist/
   publish:
     needs: verify
@@ -42,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: verified-1.0.6-packages
+          name: verified-1.0.7-packages
           path: dist/
       - name: Publish new release without overwriting older tags or assets
         env:
@@ -50,14 +52,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '039850dc1d81ab87f413f27bf78b88b53bd9155ef96e681be47eb40e2702174c  dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip' | sha256sum -c -
-          if gh release view v1.0.6 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo 'v1.0.6 already exists; refusing to overwrite it.' >&2
+          echo '67f05cff8fabf176242d3ba8302be8f0d56355c424fb48c6eb791d9f53ed46b1  dist/GuildRecruit735-1.0.7-GR735-20261019-02.zip' | sha256sum -c -
+          if gh release view v1.0.7 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v1.0.7 already exists; refusing to overwrite it.' >&2
             exit 1
           fi
-          gh release create v1.0.6 \
-            dist/GuildRecruit735-1.0.6-GR735-20261019-01.zip \
-            dist/GuildRecruit735-1.0.6-GR735-20261019-01-SOURCE.zip \
+          gh release create v1.0.7 \
+            dist/GuildRecruit735-1.0.7-GR735-20261019-02.zip \
+            dist/GuildRecruit735-1.0.7-GR735-20261019-02-SOURCE.zip \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title 'GuildRecruit735 1.0.6' \
+            --title 'GuildRecruit735 1.0.7' \
             --notes-file docs/RELEASE_NOTES_RU.md --prerelease --latest=false

@@ -234,7 +234,7 @@ FriendsFrame=fakeFrame("Frame","FriendsFrame")
 FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
 FriendsFrame:Hide()
 local libs={"Core.lua","Locale.lua","Filters.lua","Hardcore.lua","Selection.lua","Scanner.lua","Actions.lua","Docking.lua","CandidateWindow.lua","UI.lua","MinimapButton.lua"}
-for _,f in ipairs(libs) do dofile(path.."/"..f) end
+for _,f in ipairs(libs) do if not (arg[6]=="legacy-toc" and f=="Selection.lua") then dofile(path.."/"..f) end end
 local A=GR735
 A.driver.scripts.OnEvent(A.driver,"ADDON_LOADED","GuildRecruit735")
 A.driver.scripts.OnEvent(A.driver,"PLAYER_LOGIN")

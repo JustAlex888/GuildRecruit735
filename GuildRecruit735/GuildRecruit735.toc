@@ -4,9 +4,9 @@
 ## Notes-ruRU: Помощник ручного набора в гильдию для WoW Legion 7.3.5.
 ## Notes-enUS: Manual guild recruitment assistant for WoW Legion 7.3.5.
 ## Author: GuildRecruit735 contributors
-## Version: 1.0.6
-## X-Build: GR735-20261019-01
-## X-Provenance: GR735_20261019_01_FROM_GR735_20261016_01_624253de_SCAN_SELECTION_REPAIR
+## Version: 1.0.7
+## X-Build: GR735-20261019-02
+## X-Provenance: GR735_20261019_02_FROM_106_039850dc_MODULE_LOAD_HOTFIX
 ## SavedVariables: GR735DB
 ## SavedVariablesPerCharacter: GR735CharDB
 Core.lua
